@@ -1,0 +1,31 @@
+[
+    {
+        "QUERY PLAN": [
+            {
+                "Plan": {
+                    "Async Capable": false,
+                    "Node Type": "Limit",
+                    "Parallel Aware": false,
+                    "Plan Rows": 500,
+                    "Plan Width": 39,
+                    "Plans": [
+                        {
+                            "Alias": "users",
+                            "Async Capable": false,
+                            "Node Type": "Seq Scan",
+                            "Parallel Aware": false,
+                            "Parent Relationship": "Outer",
+                            "Plan Rows": 1000,
+                            "Plan Width": 39,
+                            "Relation Name": "users",
+                            "Startup Cost": 0.0,
+                            "Total Cost": 20.0
+                        }
+                    ],
+                    "Startup Cost": 0.0,
+                    "Total Cost": 10.0
+                }
+            }
+        ]
+    }
+]

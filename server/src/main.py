@@ -1,12 +1,31 @@
-from flask import Flask, jsonify
-from  services.service import Service
+from flask import Flask, jsonify, request, abort
+from getRecommendations import getRecommendations
+from werkzeug.exceptions import HTTPException
 
 app = Flask(__name__)
 
-@app.route("/test")
+
+@app.errorhandler(HTTPException)
+def handle_http_exception(e):
+    response = {"error": e.name, "code": e.code, "description": e.description}
+    return jsonify(response), e.code
+
+
+@app.route("/test", methods=["POST"])
 def test():
-    return jsonify(Service.test())
+    data: dict = request.get_json()
+    if not data or "query" not in data:
+        abort(400, description="Нет обязательного параметра query")
+    query: str = data.get("query")
+
+    print(query)
+
+    recsList = getRecommendations(query)
+
+    return jsonify(recsList)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000, debug=True)
-# flask --app main run
+
+# ЗАПУСК ЧЕРЕЗ py main.py
