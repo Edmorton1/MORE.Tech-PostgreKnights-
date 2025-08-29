@@ -1,4 +1,4 @@
-from typing import List, Set
+from typing import Any, List, Set, Callable
 from pglast import parse_sql
 from pglast.ast import RawStmt, SelectStmt
 
@@ -14,67 +14,74 @@ class PgParser:
 
     def getRecommendations(self, val):
         # print(val)
-        self._recurseCheck(val)
+        def callback(val):
+            if isinstance(val, SelectStmt):
+                self.outer_names.update(self._checkRecommendations(val, self.outer_names))
+                for i in val:
+                    inside = getattr(val, i, None)
+                    if inside:
+                        self._recurse(inside, callback)
+
+        self._recurse(val, callback)
         return self.recs
 
-    # РЕКУРСИЯ ВСЕХ SELECT
-    def _recurseCheck(self, val):
-        if isinstance(val, SelectStmt):
-            self.outer_names.update(self._checkRecommendations(val, self.outer_names))
-            for i in val:
-                inside = getattr(val, i, None)
-                if inside:
-                    self._recurseCheck(inside)
+    def _recurse(self, val, callback: Callable[[Any], None]):
+        callback(val)
 
-        elif isinstance(val, Node):
+        if isinstance(val, Node):
             for i in val:
                 inside = getattr(val, i, None)
                 if inside:
-                    self._recurseCheck(inside)
+                    self._recurse(inside, callback)
         elif isinstance(val, tuple):
             for inside in val:
-                self._recurseCheck(inside)
+                self._recurse(inside, callback)
 
     def _checkRecommendations(self, stmt: SelectStmt, outer_names: Set[str] = set()):
         # Количество таблиц в FROM
-        inner_name: Set[str] = set()
+        inner_names: Set[str] = set()
         froms = 0
 
         # self._recurseCheck(stmt)
 
-        fromClause = getattr(stmt, "fromClause", None) or ()
-        for f in fromClause:
-            # НЕСКОЛЬКО ТАБЛИЦ В FROM
-            if isinstance(f, RangeVar):
-                self._selectorCheck(f, inner_name, froms)
+        fromClause = getattr(stmt, "fromClause", None)
+        if fromClause:
+            for f in fromClause:
+                # НЕСКОЛЬКО ТАБЛИЦ В FROM
+                if isinstance(f, RangeVar):
+                    self._selectorCheck(f, inner_names, froms)
 
             # ПРОВЕРКА JOIN
             if isinstance(f, JoinExpr):
                 self._crossJoinCheck(f)
 
-        targetList = getattr(stmt, "targetList", None) or ()
-        for t in targetList:
-            if isinstance(t, ResTarget):
-                val = t.val
-                if isinstance(val, SubLink):
-                    subSelect = val.subselect
-                    for node in subSelect:
-                        attr = getattr(subSelect, node, None)
-                        if attr:
-                            self._find_columnRef(attr, inner_name)
-                if isinstance(val, ColumnRef):
-                    self._columnRefStarCheck(val)
+        targetList = getattr(stmt, "targetList", None)
+        if targetList:
+            for t in targetList:
+                if isinstance(t, ResTarget):
+                    val = t.val
+                    if isinstance(val, SubLink):
+                        subSelect = val.subselect
+                        for node in subSelect:
+                            attr = getattr(subSelect, node, None)
+                            if attr:
+                                self._find_columnRef(attr, inner_names)
+                    if isinstance(val, ColumnRef):
+                        self._columnRefStarCheck(val)
 
-        whereClause = getattr(stmt, "whereClause", None) or ()
-        rexpr = getattr(whereClause, "rexpr", None)
-        if rexpr and len(rexpr) > MAX_PARAMS_IN_IN:
-            self.recs.append(f"Не используйте большое кол-во аргументов внутри IN. Сейчас ограничение {MAX_PARAMS_IN_IN}. Используйте CTE")
+        whereClause = getattr(stmt, "whereClause", None)
+        if whereClause:
+            rexpr = getattr(whereClause, "rexpr", None)
+            if rexpr:
+                rexpr_list = rexpr if isinstance(rexpr, (tuple, list)) else [rexpr]
+                if len(rexpr_list) > MAX_PARAMS_IN_IN:
+                    self.recs.append(f"Не используйте большое кол-во аргументов внутри IN. Сейчас ограничение {MAX_PARAMS_IN_IN}. Используйте CTE")
 
         if froms > 1:
             self.recs.append("Несколько таблиц в from")
         # print(inner_name, outer_names)
 
-        return inner_name | outer_names
+        return inner_names | outer_names
 
     def _columnRefStarCheck(self, val: ColumnRef):
         fields = val.fields
@@ -100,21 +107,16 @@ class PgParser:
             self.recs.append("CROSS JOIN")
 
     # КОРЕЛЛИРОВАННЫЕ
-    def _find_columnRef(self, attr, outer_names: Set[str]):
-        if isinstance(attr, ColumnRef):
-            name = getattr(attr.fields[0], "sval")
-            if name in outer_names:
-                self.recs.append(
-                    f"Коррелированный подзапрос. Включает в себя {name}, используйте JOIN"
-                )
-        elif isinstance(attr, Node):
-            for i in attr:
-                attr_inside = getattr(attr, i, None)
-                if attr_inside:
-                    self._find_columnRef(attr_inside, outer_names)
-        elif isinstance(attr, tuple):
-            for attr_inside in attr:
-                self._find_columnRef(attr_inside, outer_names)
+    def _find_columnRef(self, attr, inner_names: Set[str]):
+        def callback(node):
+            if isinstance(node, ColumnRef):
+                name = getattr(node.fields[0], "sval", None)
+                if name in inner_names:
+                    self.recs.append(
+                        f"Коррелированный подзапрос. Включает в себя {name}, используйте JOIN"
+                    )
+
+        self._recurse(attr, callback)
 
 
 # --- НОРМ
@@ -146,12 +148,44 @@ class PgParser:
 # GROUP BY e.employee_id, e.name, d.budget;
 # """
 # Много в IN
+# sql = """
+# SELECT *
+# FROM employees
+# WHERE employee_id IN (101, 102, 103) AND (SELECT * FROM users WHERE id IN (1, 2, 3));
+# """
 sql = """
-SELECT *
-FROM employees
-WHERE employee_id IN (101, 102, 103);
+SELECT
+    c.customer_id,
+    c.name,
+    (
+        SELECT COUNT(*)
+        FROM orders o
+        WHERE o.customer_id = c.customer_id
+    ) AS orders_count,
+    (
+        SELECT SUM(oi.quantity)
+        FROM order_items oi
+        WHERE oi.order_id IN (
+            SELECT o2.order_id
+            FROM orders o2
+            WHERE o2.customer_id = c.customer_id
+        )
+    ) AS total_items,
+    (
+        SELECT AVG(p.price)
+        FROM products p
+        WHERE p.product_id IN (
+            SELECT oi2.product_id
+            FROM order_items oi2
+            WHERE oi2.order_id IN (
+                SELECT o3.order_id
+                FROM orders o3
+                WHERE o3.customer_id = c.customer_id
+            )
+        )
+    ) AS avg_product_price
+FROM customers c;
 """
-
 ast_tree: List[RawStmt] = parse_sql(sql)
 stmt: SelectStmt = ast_tree[0].stmt
 
