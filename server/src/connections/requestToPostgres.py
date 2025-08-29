@@ -1,4 +1,4 @@
-from postgres import cur, conn
+from .postgres import cur, conn
 
 
 def requestToPostgres(query: str):

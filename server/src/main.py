@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request, abort
-from getRecommendations import getRecommendations
 from werkzeug.exceptions import HTTPException
+from getRecommendations import getRecommendations
+
 
 app = Flask(__name__)
 

@@ -1,5 +1,6 @@
 from typing import List
-from ..connections.requestToPostgres import requestToPostgres
+from connections.requestToPostgres import requestToPostgres
+
 
 
 class PostRecommendations:
