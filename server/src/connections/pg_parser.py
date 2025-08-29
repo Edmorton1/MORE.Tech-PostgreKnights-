@@ -3,8 +3,9 @@ from pglast import parse_sql
 from pglast.ast import RawStmt, SelectStmt
 
 # fmt: off
-from pglast.ast import SelectStmt, JoinExpr, ResTarget, ColumnRef, A_Star, RangeVar, SubLink, Node, Alias
+from pglast.ast import SelectStmt, JoinExpr, ResTarget, ColumnRef, A_Star, RangeVar, SubLink, Node, Alias, A_Expr
 
+MAX_PARAMS_IN_IN = 2
 
 class PgParser:
     def __init__(self):
@@ -12,20 +13,24 @@ class PgParser:
         self.outer_names: Set[str] = set()
 
     def getRecommendations(self, val):
+        # print(val)
         self._recurseCheck(val)
         return self.recs
 
     # РЕКУРСИЯ ВСЕХ SELECT
     def _recurseCheck(self, val):
         if isinstance(val, SelectStmt):
-            self.outer_names = self._checkRecommendations(val, self.outer_names)
+            self.outer_names.update(self._checkRecommendations(val, self.outer_names))
             for i in val:
-                inside = getattr(val, i)
-                self._recurseCheck(inside)
+                inside = getattr(val, i, None)
+                if inside:
+                    self._recurseCheck(inside)
+
         elif isinstance(val, Node):
             for i in val:
-                inside = getattr(val, i)
-                self._recurseCheck(inside)
+                inside = getattr(val, i, None)
+                if inside:
+                    self._recurseCheck(inside)
         elif isinstance(val, tuple):
             for inside in val:
                 self._recurseCheck(inside)
@@ -37,7 +42,7 @@ class PgParser:
 
         # self._recurseCheck(stmt)
 
-        fromClause = stmt.fromClause
+        fromClause = getattr(stmt, "fromClause", None) or ()
         for f in fromClause:
             # НЕСКОЛЬКО ТАБЛИЦ В FROM
             if isinstance(f, RangeVar):
@@ -47,19 +52,23 @@ class PgParser:
             if isinstance(f, JoinExpr):
                 self._crossJoinCheck(f)
 
-        targetList = stmt.targetList
-        # print("TargetList", targetList)
+        targetList = getattr(stmt, "targetList", None) or ()
         for t in targetList:
             if isinstance(t, ResTarget):
                 val = t.val
                 if isinstance(val, SubLink):
                     subSelect = val.subselect
                     for node in subSelect:
-                        attr = getattr(subSelect, node)
-                        # print("INNER", inner_name)
-                        self._find_columnRef(attr, inner_name)
+                        attr = getattr(subSelect, node, None)
+                        if attr:
+                            self._find_columnRef(attr, inner_name)
                 if isinstance(val, ColumnRef):
                     self._columnRefStarCheck(val)
+
+        whereClause = getattr(stmt, "whereClause", None) or ()
+        rexpr = getattr(whereClause, "rexpr", None)
+        if rexpr and len(rexpr) > MAX_PARAMS_IN_IN:
+            self.recs.append(f"Не используйте большое кол-во аргументов внутри IN. Сейчас ограничение {MAX_PARAMS_IN_IN}. Используйте CTE")
 
         if froms > 1:
             self.recs.append("Несколько таблиц в from")
@@ -90,6 +99,7 @@ class PgParser:
         if join_type == 0 and quals == None:
             self.recs.append("CROSS JOIN")
 
+    # КОРЕЛЛИРОВАННЫЕ
     def _find_columnRef(self, attr, outer_names: Set[str]):
         if isinstance(attr, ColumnRef):
             name = getattr(attr.fields[0], "sval")
@@ -99,8 +109,9 @@ class PgParser:
                 )
         elif isinstance(attr, Node):
             for i in attr:
-                attr_inside = getattr(attr, i)
-                self._find_columnRef(attr_inside, outer_names)
+                attr_inside = getattr(attr, i, None)
+                if attr_inside:
+                    self._find_columnRef(attr_inside, outer_names)
         elif isinstance(attr, tuple):
             for attr_inside in attr:
                 self._find_columnRef(attr_inside, outer_names)
@@ -112,47 +123,33 @@ class PgParser:
 # sql = "SELECT * FROM users CROSS JOIN orders"
 # --- Коррелированные подзапросы
 # sql = """
-# SELECT u.id,
-#        (SELECT COUNT(*)
-#         FROM orders o
-#         WHERE o.user_id = u.id) AS order_count
-# FROM users u;
+# SELECT e.employee_id,
+#        e.name,
+#        d.budget AS dept_budget,
+#        COUNT(p.project_id) AS project_count
+# FROM employees e
+# JOIN departments d ON d.department_id = e.department_id
+# LEFT JOIN projects p ON p.manager_id = e.employee_id
+# GROUP BY e.employee_id, e.name, d.budget;
 # """
 # --- НЕСКОЛЬКО ТАБЛИЦ
 # sql = "SELECT * FROM users, orders"
-
+# --- ЕЩЁ НА КОРРЕЛИРОВАНИЕ
+# sql = """
+# SELECT e.employee_id,
+#        e.name,
+#        d.budget AS dept_budget,
+#        COUNT(p.project_id) AS project_count
+# FROM employees e
+# JOIN departments d ON d.department_id = e.department_id
+# LEFT JOIN projects p ON p.manager_id = e.employee_id
+# GROUP BY e.employee_id, e.name, d.budget;
+# """
+# Много в IN
 sql = """
-SELECT
-    c.customer_id,
-    c.name,
-    (
-        SELECT COUNT(*)
-        FROM orders o
-        WHERE o.customer_id = c.customer_id
-    ) AS orders_count,
-    (
-        SELECT SUM(oi.quantity)
-        FROM order_items oi
-        WHERE oi.order_id IN (
-            SELECT o2.order_id
-            FROM orders o2
-            WHERE o2.customer_id = c.customer_id
-        )
-    ) AS total_items,
-    (
-        SELECT AVG(p.price)
-        FROM products p
-        WHERE p.product_id IN (
-            SELECT oi2.product_id
-            FROM order_items oi2
-            WHERE oi2.order_id IN (
-                SELECT o3.order_id
-                FROM orders o3
-                WHERE o3.customer_id = c.customer_id
-            )
-        )
-    ) AS avg_product_price
-FROM customers c;
+SELECT *
+FROM employees
+WHERE employee_id IN (101, 102, 103);
 """
 
 ast_tree: List[RawStmt] = parse_sql(sql)
@@ -161,3 +158,20 @@ stmt: SelectStmt = ast_tree[0].stmt
 asd = PgParser()
 
 print(asd.getRecommendations(stmt))
+
+# WITH ids(id) AS (
+#     VALUES (101), (102), (103)
+# )
+# SELECT e.*
+# FROM employees e
+# JOIN ids i ON e.employee_id = i.id;
+
+# --- CTE
+# sql = """
+# WITH ids(id) AS (
+#     VALUES (101), (102), (103)
+# )
+# SELECT e.*
+# FROM employees e
+# JOIN ids i ON e.employee_id = i.id;
+# """

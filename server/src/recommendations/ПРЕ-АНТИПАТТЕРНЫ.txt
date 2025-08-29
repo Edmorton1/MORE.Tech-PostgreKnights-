@@ -1,0 +1,6 @@
+1. SELECT *
+2. FROM users, orders | Это также = FROM users CROSS JOIN orders
+3. Коррелированные подзапросы (N+1)
+4. Большие списки в in / values (Max IN - 100)
+
+4. OR между несопоставимыми колонками
