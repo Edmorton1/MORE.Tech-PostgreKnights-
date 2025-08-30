@@ -1,13 +1,12 @@
 from typing import List
-from recommendations.post_recommendations import PostRecommendations
-from recommendations.pre_recommendations import PreRecommendations
+from src.recommendations.post_recommendations import PostRecommendations
+from src.recommendations.pre_recommendations import PreRecommendations
 
 
 
 def getRecommendations(query: str) -> List[str]:
     preRecsList = PreRecommendations(query).preprocessing()
     postRecsList = PostRecommendations(query).postprocessing()
-    recsList = preRecsList + postRecsList
-    print(recsList)
+    # recsList = preRecsList + postRecsList
 
-    return recsList
+    return postRecsList

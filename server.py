@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request, abort
 from werkzeug.exceptions import HTTPException
-from getRecommendations import getRecommendations
+from src.getRecommendations import getRecommendations
 
 
 app = Flask(__name__)
@@ -30,4 +30,3 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=3000, debug=True)
 
 # ЗАПУСК ЧЕРЕЗ py main.py
-# python.analysis.typeCheckingMode

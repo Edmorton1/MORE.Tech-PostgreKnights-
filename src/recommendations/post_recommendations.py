@@ -1,13 +1,13 @@
 from typing import List
-from connections.requestToPostgres import requestToPostgres
-
+from src.connections.post_analyze import PostAnalyze
 
 
 class PostRecommendations:
     recs: List[str] = []
 
     def __init__(self, query: str):
-        self.request = requestToPostgres(query)
+        self.explain = PostAnalyze().analyze_query(query)
 
-    def postprocessing(self) -> List[str]:
-        return self.recs
+    # def postprocessing(self) -> List[str]:
+    def postprocessing(self):
+        return self.explain
