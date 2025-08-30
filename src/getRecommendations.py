@@ -1,12 +1,12 @@
-from typing import List
-from src.recommendations.post_recommendations import PostRecommendations
-from src.recommendations.pre_recommendations import PreRecommendations
+from typing import Any, List
+
+# from src.pre.pg_parser import PgParser
+from src.post.post_analyze import PostAnalyze
 
 
-
-def getRecommendations(query: str) -> List[str]:
-    preRecsList = PreRecommendations(query).preprocessing()
-    postRecsList = PostRecommendations(query).postprocessing()
+def getRecommendations(query: str) -> Any:
+    # preRecsList = PgParser().
+    postRecsList = PostAnalyze().analyze_query(query)
     # recsList = preRecsList + postRecsList
 
     return postRecsList

@@ -1,5 +1,5 @@
-from src.connections.cost_model import CostModel
-from src.connections.postgres import getExplainPlan
+from src.post.cost_model import CostModel
+from src.post.getExplainPlan import getExplainPlan
 
 
 class PostAnalyze:

@@ -1,41 +1,30 @@
-from typing import Any, List, Set, Callable
+from typing import List, Set
 from pglast import parse_sql
 from pglast.ast import RawStmt, SelectStmt
 
+# ЕСЛИ ЗАПУСКАТЬ ИЗ main
+# from src.pre.common import Common
+from common import Common
+from recurce_checkers import RecurseCheckers
+
 # fmt: off
-from pglast.ast import SelectStmt, JoinExpr, ResTarget, ColumnRef, A_Star, RangeVar, SubLink, Node, Alias, A_Expr
+from pglast.ast import SelectStmt, JoinExpr, ResTarget, ColumnRef, A_Star, RangeVar, SubLink, Alias
 
-MAX_PARAMS_IN_IN = 2
 
-class PgParser:
+class PgParser(Common):
     def __init__(self):
         self.recs: List[str] = []
         self.outer_names: Set[str] = set()
+        self.recurceCheckers = RecurseCheckers(self.recs)
 
     def getRecommendations(self, val):
         # print(val)
         def callback(val):
             if isinstance(val, SelectStmt):
                 self.outer_names.update(self._checkRecommendations(val, self.outer_names))
-                for i in val:
-                    inside = getattr(val, i, None)
-                    if inside:
-                        self._recurse(inside, callback)
 
         self._recurse(val, callback)
         return self.recs
-
-    def _recurse(self, val, callback: Callable[[Any], None]):
-        callback(val)
-
-        if isinstance(val, Node):
-            for i in val:
-                inside = getattr(val, i, None)
-                if inside:
-                    self._recurse(inside, callback)
-        elif isinstance(val, tuple):
-            for inside in val:
-                self._recurse(inside, callback)
 
     def _checkRecommendations(self, stmt: SelectStmt, outer_names: Set[str] = set()):
         # Количество таблиц в FROM
@@ -60,22 +49,17 @@ class PgParser:
             for t in targetList:
                 if isinstance(t, ResTarget):
                     val = t.val
-                    if isinstance(val, SubLink):
-                        subSelect = val.subselect
-                        for node in subSelect:
-                            attr = getattr(subSelect, node, None)
-                            if attr:
-                                self._find_columnRef(attr, inner_names)
+                    # if isinstance(val, SubLink):
+                    #     subSelect = val.subselect
+                    #     for node in subSelect:
+                    #         attr = getattr(subSelect, node, None)
+                    #         if attr:
+                    #             self.recurceCheckers._find_correlation(attr, inner_names)
                     if isinstance(val, ColumnRef):
                         self._columnRefStarCheck(val)
 
-        whereClause = getattr(stmt, "whereClause", None)
-        if whereClause:
-            rexpr = getattr(whereClause, "rexpr", None)
-            if rexpr:
-                rexpr_list = rexpr if isinstance(rexpr, (tuple, list)) else [rexpr]
-                if len(rexpr_list) > MAX_PARAMS_IN_IN:
-                    self.recs.append(f"Не используйте большое кол-во аргументов внутри IN. Сейчас ограничение {MAX_PARAMS_IN_IN}. Используйте CTE")
+        self.recurceCheckers._find_correlation(stmt, outer_names)
+        self.recurceCheckers._many_params_in_IN(stmt)
 
         if froms > 1:
             self.recs.append("Несколько таблиц в from")
@@ -83,11 +67,11 @@ class PgParser:
 
         return inner_names | outer_names
 
+
+    # * IN SELECT
     def _columnRefStarCheck(self, val: ColumnRef):
         fields = val.fields
-        # print("fields", fields)
         for field in fields:
-            # ПРОВЕРКА НА *
             if isinstance(field, A_Star):
                 self.recs.append("Используется *")
 
@@ -100,24 +84,12 @@ class PgParser:
             inner_name.add(f.relname)
         froms += 1
 
+    # CROSS JOIN
     def _crossJoinCheck(self, f: JoinExpr):
         join_type = f.jointype
         quals = getattr(f, "quals", None)
         if join_type == 0 and quals == None:
             self.recs.append("CROSS JOIN")
-
-    # КОРЕЛЛИРОВАННЫЕ
-    def _find_columnRef(self, attr, inner_names: Set[str]):
-        def callback(node):
-            if isinstance(node, ColumnRef):
-                name = getattr(node.fields[0], "sval", None)
-                if name in inner_names:
-                    self.recs.append(
-                        f"Коррелированный подзапрос. Включает в себя {name}, используйте JOIN"
-                    )
-
-        self._recurse(attr, callback)
-
 
 # --- НОРМ
 # sql = "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id"
@@ -148,44 +120,18 @@ class PgParser:
 # GROUP BY e.employee_id, e.name, d.budget;
 # """
 # Много в IN
-# sql = """
-# SELECT *
-# FROM employees
-# WHERE employee_id IN (101, 102, 103) AND (SELECT * FROM users WHERE id IN (1, 2, 3));
-# """
 sql = """
-SELECT
-    c.customer_id,
-    c.name,
-    (
-        SELECT COUNT(*)
-        FROM orders o
-        WHERE o.customer_id = c.customer_id
-    ) AS orders_count,
-    (
-        SELECT SUM(oi.quantity)
-        FROM order_items oi
-        WHERE oi.order_id IN (
-            SELECT o2.order_id
-            FROM orders o2
-            WHERE o2.customer_id = c.customer_id
-        )
-    ) AS total_items,
-    (
-        SELECT AVG(p.price)
-        FROM products p
-        WHERE p.product_id IN (
-            SELECT oi2.product_id
-            FROM order_items oi2
-            WHERE oi2.order_id IN (
-                SELECT o3.order_id
-                FROM orders o3
-                WHERE o3.customer_id = c.customer_id
-            )
-        )
-    ) AS avg_product_price
-FROM customers c;
+SELECT department_id, name
+FROM departments d
+WHERE EXISTS (
+    SELECT 1
+    FROM employees e
+    WHERE e.department_id = d.department_id  -- d.department_id из внешнего запроса
+      AND e.salary > 50000
+);
 """
+
+
 ast_tree: List[RawStmt] = parse_sql(sql)
 stmt: SelectStmt = ast_tree[0].stmt
 
@@ -208,4 +154,38 @@ print(asd.getRecommendations(stmt))
 # SELECT e.*
 # FROM employees e
 # JOIN ids i ON e.employee_id = i.id;
+# """
+# МНОГО КОРЕЛЯЦИЙ
+# sql = """
+# SELECT
+#     c.customer_id,
+#     c.name,
+#     (
+#         SELECT COUNT(*)
+#         FROM orders o
+#         WHERE o.customer_id = c.customer_id
+#     ) AS orders_count,
+#     (
+#         SELECT SUM(oi.quantity)
+#         FROM order_items oi
+#         WHERE oi.order_id IN (
+#             SELECT o2.order_id
+#             FROM orders o2
+#             WHERE o2.customer_id = c.customer_id
+#         )
+#     ) AS total_items,
+#     (
+#         SELECT AVG(p.price)
+#         FROM products p
+#         WHERE p.product_id IN (
+#             SELECT oi2.product_id
+#             FROM order_items oi2
+#             WHERE oi2.order_id IN (
+#                 SELECT o3.order_id
+#                 FROM orders o3
+#                 WHERE o3.customer_id = c.customer_id
+#             )
+#         )
+#     ) AS avg_product_price
+# FROM customers c;
 # """
