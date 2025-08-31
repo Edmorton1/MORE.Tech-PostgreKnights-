@@ -1,0 +1,12 @@
+
+ИСТОРИЯ
+SELECT query, calls, total_exec_time, mean_exec_time, rows
+FROM pg_stat_statements
+WHERE query ILIKE 'select %'
+ORDER BY total_exec_time DESC
+LIMIT 10;
+
+ИНФА О ТАБЛИЦЕ
+SELECT relname, reltuples::bigint AS row_count, relpages AS pages
+FROM pg_class
+WHERE relname = ${TABLE};
