@@ -1,15 +1,17 @@
 from typing import List, Set
-from common import Common
+from src.pre.common import Common
 
 # fmt: off
-from pglast.ast import ColumnRef, A_Expr, JoinExpr
+from pglast.ast import ColumnRef, A_Expr, JoinExpr, SubLink
+from pglast.enums import SubLinkType
+from src.types.types import AnalysisResult
 
 MAX_PARAMS_IN_IN = 2
 
 class RecurseCheckers(Common):
 	def __init__(self, recs) -> None:
 		super().__init__()
-		self.recs: List[str] = recs
+		self.recs: AnalysisResult = recs
 
 	# КОРЕЛЛИРОВАННЫЕ
 	def _find_correlation(self, val, inner_names: Set[str]):
@@ -18,7 +20,7 @@ class RecurseCheckers(Common):
 				name = getattr(node.fields[0], "sval", None)
 				# print(inner_names, name, node)
 				if name in inner_names:
-					self.recs.append(
+					self.recs["issues"].append(
 						f"Коррелированный подзапрос. Включает в себя {name}, используйте JOIN"
 					)
 
@@ -32,7 +34,7 @@ class RecurseCheckers(Common):
 				if rexpr:
 					rexpr_list = rexpr if isinstance(rexpr, (tuple, list)) else [rexpr]
 					if len(rexpr_list) > MAX_PARAMS_IN_IN:
-						self.recs.append(
+						self.recs["issues"].append(
 							f"Не используйте большое кол-во аргументов внутри IN. Сейчас ограничение {MAX_PARAMS_IN_IN}. Используйте CTE"
 						)
 
@@ -46,6 +48,13 @@ class RecurseCheckers(Common):
 				join_type = node.jointype
 				quals = getattr(node, "quals", None)
 				if join_type == 0 and quals is None:
-					self.recs.append("CROSS JOIN")
+					self.recs["issues"].append("CROSS JOIN")
 
+		self._recurse_without_subquery(val, callback)
+
+	def _subquery_in_IN(self, val):
+		def callback(node):
+			if isinstance(node, SubLink) and node.subLinkType == SubLinkType.ANY_SUBLINK and node.subselect is not None:
+				self.recs["issues"].append("IN с подзапросом")
+		
 		self._recurse_without_subquery(val, callback)

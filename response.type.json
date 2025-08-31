@@ -1,0 +1,14 @@
+{
+	"pre": {
+		"issues": [],
+		"query": "",
+		"risk_level": "low",
+		"risk_score": 15
+	},
+	"post": {
+		"issues": [],
+		"query": "",
+		"risk_level": "low",
+		"risk_score": 15
+	}
+}

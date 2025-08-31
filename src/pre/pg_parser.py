@@ -1,79 +1,87 @@
 from typing import List, Set
 from pglast import parse_sql
 from pglast.ast import RawStmt, SelectStmt
-
-# ЕСЛИ ЗАПУСКАТЬ ИЗ main
-# from src.pre.common import Common
-from common import Common
-from recurce_checkers import RecurseCheckers
-
-# fmt: off
+from src.pre.common import Common
+from src.pre.recurce_checkers import RecurseCheckers
 from pglast.ast import ResTarget, ColumnRef, A_Star, RangeVar, Alias
+from src.types.types import AnalysisResult
 
 
 class PgParser(Common):
-	def __init__(self):
-		self.recs: List[str] = []
-		self.outer_names: Set[str] = set()
-		self.recurceCheckers = RecurseCheckers(self.recs)
+    def __init__(self):
+        self.recs: AnalysisResult = {
+            "issues": [],
+            "query": "",
+            "risk_score": 0,
+            "risk_level": "low",
+        }
+        self.outer_names: Set[str] = set()
+        self.recurseCheckers = RecurseCheckers(self.recs)
 
-	def getRecommendations(self, val):
-		# print(val)
-		def callback(val):
-			if isinstance(val, SelectStmt):
-				self.outer_names.update(self._checkRecommendations(val, self.outer_names))
+    def getRecommendations(self, query: str):
+        # print(val)
+        ast_tree: List[RawStmt] = parse_sql(query)
+        stmt: SelectStmt = ast_tree[0].stmt
+        self.recs["query"] = query
 
-		self._recurse(val, callback)
-		return self.recs
+        def callback(val):
+            if isinstance(val, SelectStmt):
+                self.outer_names.update(
+                    self._checkRecommendations(val, self.outer_names)
+                )
 
-	def _checkRecommendations(self, stmt: SelectStmt, outer_names: Set[str] = set()):
-		# Количество таблиц в FROM
-		inner_names: Set[str] = set()
-		froms = 0
+        self._recurse(stmt, callback)
+        return self.recs
 
-		# self._recurseCheck(stmt)
+    def _checkRecommendations(self, stmt: SelectStmt, outer_names: Set[str] = set()):
+        # Количество таблиц в FROM
+        inner_names: Set[str] = set()
+        froms = 0
 
-		fromClause = getattr(stmt, "fromClause", None)
-		if fromClause:
-			for f in fromClause:
-				# НЕСКОЛЬКО ТАБЛИЦ В FROM
-				if isinstance(f, RangeVar):
-					self._selectorCheck(f, inner_names, froms)
+        # self._recurseCheck(stmt)
 
-		targetList = getattr(stmt, "targetList", None)
-		if targetList:
-			for t in targetList:
-				if isinstance(t, ResTarget):
-					val = t.val
-					if isinstance(val, ColumnRef):
-						self._columnRefStarCheck(val)
+        fromClause = getattr(stmt, "fromClause", None)
+        if fromClause:
+            for f in fromClause:
+                # НЕСКОЛЬКО ТАБЛИЦ В FROM
+                if isinstance(f, RangeVar):
+                    self._selectorCheck(f, inner_names, froms)
 
-		self.recurceCheckers._find_correlation(stmt, outer_names)
-		self.recurceCheckers._many_params_in_IN(stmt)
-		self.recurceCheckers._crossJoinCheck(stmt)
+        targetList = getattr(stmt, "targetList", None)
+        if targetList:
+            for t in targetList:
+                if isinstance(t, ResTarget):
+                    val = t.val
+                    if isinstance(val, ColumnRef):
+                        self._columnRefStarCheck(val)
 
-		if froms > 1:
-			self.recs.append("Несколько таблиц в from")
-		# print(inner_name, outer_names)
+        self.recurseCheckers._find_correlation(stmt, outer_names)
+        self.recurseCheckers._many_params_in_IN(stmt)
+        self.recurseCheckers._crossJoinCheck(stmt)
+        self.recurseCheckers._subquery_in_IN(stmt)
 
-		return inner_names | outer_names
+        if froms > 1:
+            self.recs["issues"].append("Несколько таблиц в from")
+        # print(inner_name, outer_names)
 
+        return inner_names | outer_names
 
-	# * IN SELECT
-	def _columnRefStarCheck(self, val: ColumnRef):
-		fields = val.fields
-		for field in fields:
-			if isinstance(field, A_Star):
-				self.recs.append("Используется *")
+    # * IN SELECT
+    def _columnRefStarCheck(self, val: ColumnRef):
+        fields = val.fields
+        for field in fields:
+            if isinstance(field, A_Star):
+                self.recs["issues"].append("Используется *")
 
-	def _selectorCheck(self, f: RangeVar, inner_name: Set[str], froms: int):
-		if f.alias:
-			alias = f.alias
-			if isinstance(alias, Alias):
-				inner_name.add(alias.aliasname)
-		elif f.relname:
-			inner_name.add(f.relname)
-		froms += 1
+    def _selectorCheck(self, f: RangeVar, inner_name: Set[str], froms: int):
+        if f.alias:
+            alias = f.alias
+            if isinstance(alias, Alias):
+                inner_name.add(alias.aliasname)
+        elif f.relname:
+            inner_name.add(f.relname)
+        froms += 1
+
 
 # --- НОРМ
 # sql = "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id"
@@ -82,9 +90,9 @@ class PgParser(Common):
 # --- Коррелированные подзапросы
 # sql = """
 # SELECT e.employee_id,
-#		e.name,
-#		d.budget AS dept_budget,
-#		COUNT(p.project_id) AS project_count
+# e.name,
+# d.budget AS dept_budget,
+# COUNT(p.project_id) AS project_count
 # FROM employees e
 # JOIN departments d ON d.department_id = e.department_id
 # LEFT JOIN projects p ON p.manager_id = e.employee_id
@@ -95,29 +103,32 @@ class PgParser(Common):
 # --- ЕЩЁ НА КОРРЕЛИРОВАНИЕ
 # sql = """
 # SELECT e.employee_id,
-#		e.name,
-#		d.budget AS dept_budget,
-#		COUNT(p.project_id) AS project_count
+# e.name,
+# d.budget AS dept_budget,
+# COUNT(p.project_id) AS project_count
 # FROM employees e
 # JOIN departments d ON d.department_id = e.department_id
 # LEFT JOIN projects p ON p.manager_id = e.employee_id
 # GROUP BY e.employee_id, e.name, d.budget;
 # """
 # Много в IN
-sql = """
-SELECT * FROM users
-WHERE asd IN (1, 2, 3)
-"""
+if __name__ == "__main__":
+    sql = """
+	SELECT u.id, o.id
+	FROM users u
+	LEFT JOIN orders o ON u.id = o.user_id
+	WHERE o.status = 'paid';
+	"""
 
-ast_tree: List[RawStmt] = parse_sql(sql)
-stmt: SelectStmt = ast_tree[0].stmt
+    ast_tree: List[RawStmt] = parse_sql(sql)
+    stmt: SelectStmt = ast_tree[0].stmt
 
-asd = PgParser()
+    asd = PgParser()
 
-print(asd.getRecommendations(stmt))
+    print(asd.getRecommendations(stmt))
 
 # WITH ids(id) AS (
-#	 VALUES (101), (102), (103)
+# VALUES (101), (102), (103)
 # )
 # SELECT e.*
 # FROM employees e
@@ -126,7 +137,7 @@ print(asd.getRecommendations(stmt))
 # --- CTE
 # sql = """
 # WITH ids(id) AS (
-#	 VALUES (101), (102), (103)
+# VALUES (101), (102), (103)
 # )
 # SELECT e.*
 # FROM employees e
@@ -135,34 +146,34 @@ print(asd.getRecommendations(stmt))
 # МНОГО КОРЕЛЯЦИЙ
 # sql = """
 # SELECT
-#	 c.customer_id,
-#	 c.name,
-#	 (
-#		 SELECT COUNT(*)
-#		 FROM orders o
-#		 WHERE o.customer_id = c.customer_id
-#	 ) AS orders_count,
-#	 (
-#		 SELECT SUM(oi.quantity)
-#		 FROM order_items oi
-#		 WHERE oi.order_id IN (
-#			 SELECT o2.order_id
-#			 FROM orders o2
-#			 WHERE o2.customer_id = c.customer_id
-#		 )
-#	 ) AS total_items,
-#	 (
-#		 SELECT AVG(p.price)
-#		 FROM products p
-#		 WHERE p.product_id IN (
-#			 SELECT oi2.product_id
-#			 FROM order_items oi2
-#			 WHERE oi2.order_id IN (
-#				 SELECT o3.order_id
-#				 FROM orders o3
-#				 WHERE o3.customer_id = c.customer_id
-#			 )
-#		 )
-#	 ) AS avg_product_price
+# 	 c.customer_id,
+# 	 c.name,
+# 	 (
+# 		 SELECT COUNT(*)
+# 		 FROM orders o
+# 		 WHERE o.customer_id = c.customer_id
+# 	 ) AS orders_count,
+# 	 (
+# 		 SELECT SUM(oi.quantity)
+# 		 FROM order_items oi
+# 		 WHERE oi.order_id IN (
+# 			 SELECT o2.order_id
+# 			 FROM orders o2
+# 			 WHERE o2.customer_id = c.customer_id
+# 		 )
+# 	 ) AS total_items,
+# 	 (
+# 		 SELECT AVG(p.price)
+# 		 FROM products p
+# 		 WHERE p.product_id IN (
+# 			 SELECT oi2.product_id
+# 			 FROM order_items oi2
+# 			 WHERE oi2.order_id IN (
+# 				 SELECT o3.order_id
+# 				 FROM orders o3
+# 				 WHERE o3.customer_id = c.customer_id
+# 			 )
+# 		 )
+# 	 ) AS avg_product_price
 # FROM customers c;
 # """
