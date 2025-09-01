@@ -1,0 +1,28 @@
+БЕЗ ИНДЕКСА 4,5 сек
+
+EXPLAIN
+SELECT *
+FROM posts
+ORDER BY user_id
+LIMIT 1000000
+
+
+"Gather Merge  (cost=525285.97..1011430.94 rows=4166666 width=58)"
+"  Workers Planned: 2"
+"  ->  Sort  (cost=524285.94..529494.28 rows=2083333 width=58)"
+"        Sort Key: user_id"
+"        ->  Parallel Seq Scan on posts  (cost=0.00..148975.33 rows=2083333 width=58)"
+
+С ИНДЕКСОМ
+ЕСЛИ НЕ МЕНЯТЬ ЗАПРОС, БУДЕТ ТАКОЕ ЖЕ ВРЕМЯ
+С ЛИМИТОМ 2с БЕЗ ИНДЕКСА И 1с С ИНДЕКСОМ
+
+"Limit  (cost=0.43..120202.37 rows=1000000 width=58)"
+"  ->  Index Scan using idx_posts_user_id on posts  (cost=0.43..601010.10 rows=5000000 width=58)"
+
+EXPLAIN
+SELECT *
+FROM posts
+ORDER BY user_id
+LIMIT 1000000
+-- LIMIT 49932

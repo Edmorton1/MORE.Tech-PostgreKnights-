@@ -1,8 +1,13 @@
 from typing import List, Literal, TypedDict
 
+class AnalysisIssue(TypedDict):
+    severity: Literal["low", "medium", "high"]
+    problem: str
+    recommendation: str
+
 
 class AnalysisResult(TypedDict):
-    issues: List[str]
+    issues: List[AnalysisIssue]
     query: str
     risk_level: Literal["low", "medium", "high"]
     risk_score: int

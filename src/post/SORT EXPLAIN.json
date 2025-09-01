@@ -1,0 +1,79 @@
+{
+    "WITH_INDEX": {
+        "Async Capable": false,
+        "Node Type": "Limit",
+        "Parallel Aware": false,
+        "Plan Rows": 1000000,
+        "Plan Width": 58,
+        "Plans": [
+            {
+                "Async Capable": false,
+                "Node Type": "Gather Merge",
+                "Parallel Aware": false,
+                "Parent Relationship": "Outer",
+                "Plan Rows": 4166666,
+                "Plan Width": 58,
+                "Plans": [
+                    {
+                        "Async Capable": false,
+                        "Node Type": "Sort",
+                        "Parallel Aware": false,
+                        "Parent Relationship": "Outer",
+                        "Plan Rows": 2083333,
+                        "Plan Width": 58,
+                        "Plans": [
+                            {
+                                "Alias": "posts",
+                                "Async Capable": false,
+                                "Node Type": "Seq Scan",
+                                "Parallel Aware": true,
+                                "Parent Relationship": "Outer",
+                                "Plan Rows": 2083333,
+                                "Plan Width": 58,
+                                "Relation Name": "posts",
+                                "Startup Cost": 0.0,
+                                "Total Cost": 148975.33
+                            }
+                        ],
+                        "Sort Key": [
+                            "user_id"
+                        ],
+                        "Startup Cost": 367012.47,
+                        "Total Cost": 372220.8
+                    }
+                ],
+                "Startup Cost": 368012.49,
+                "Total Cost": 854157.47,
+                "Workers Planned": 2
+            }
+        ],
+        "Startup Cost": 368012.49,
+        "Total Cost": 484687.31
+    },
+    
+    "WITHOUT_INDEX": {
+        "Async Capable": false,
+        "Node Type": "Limit",
+        "Parallel Aware": false,
+        "Plan Rows": 1000000,
+        "Plan Width": 58,
+        "Plans": [
+            {
+                "Alias": "posts",
+                "Async Capable": false,
+                "Index Name": "idx_posts_user_id",
+                "Node Type": "Index Scan",
+                "Parallel Aware": false,
+                "Parent Relationship": "Outer",
+                "Plan Rows": 5000000,
+                "Plan Width": 58,
+                "Relation Name": "posts",
+                "Scan Direction": "Forward",
+                "Startup Cost": 0.43,
+                "Total Cost": 601010.1
+            }
+        ],
+        "Startup Cost": 0.43,
+        "Total Cost": 120202.37
+    }
+}

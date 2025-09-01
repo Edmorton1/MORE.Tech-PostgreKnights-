@@ -3,20 +3,20 @@ from pglast.ast import Node, SubLink
 
 
 class Common:
-	def _recurse(self, val, callback: Callable[[Any], None]):
+	def recurse(self, val, callback: Callable[[Any], None]):
 		callback(val)
 
 		if isinstance(val, Node):
 			for i in val:
 				inside = getattr(val, i, None)
 				if inside:
-					self._recurse(inside, callback)
+					self.recurse(inside, callback)
 		elif isinstance(val, tuple):
 			for inside in val:
-				self._recurse(inside, callback)
+				self.recurse(inside, callback)
 
 	# TODO: ДУБЛИРОВАНИЕ ПОТОМ УБРАТЬ
-	def _recurse_without_subquery(self, val, callback: Callable[[Any], None]):
+	def recurse_without_subquery(self, val, callback: Callable[[Any], None]):
 		callback(val)
 
 		if isinstance(val, Node):
@@ -24,9 +24,9 @@ class Common:
 				for i in val:
 					inside = getattr(val, i, None)
 					if inside:
-						self._recurse_without_subquery(inside, callback)
+						self.recurse_without_subquery(inside, callback)
 
 		elif isinstance(val, tuple):
 			for inside in val:
-				self._recurse_without_subquery(inside, callback)
+				self.recurse_without_subquery(inside, callback)
 
