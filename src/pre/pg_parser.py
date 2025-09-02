@@ -42,6 +42,7 @@ class PgParser(Common):
         # Количество таблиц в FROM
         inner_names: Set[str] = set()
         froms = 0
+        table = None
 
         fromClause = getattr(stmt, "fromClause", None)
         if fromClause:
@@ -49,7 +50,7 @@ class PgParser(Common):
                 # НЕСКОЛЬКО ТАБЛИЦ В FROM
                 if isinstance(f, RangeVar):
                     froms += 1
-                    self._selectorCheck(f, inner_names, froms)
+                    table = self._selectorCheck(f, inner_names)
 
         targetList = getattr(stmt, "targetList", None)
         if targetList:
@@ -57,7 +58,7 @@ class PgParser(Common):
                 if isinstance(t, ResTarget):
                     val = t.val
                     if isinstance(val, ColumnRef):
-                        self._columnRefStarCheck(val)
+                        self._columnRefStarCheck(val, table)
 
         whereClause = getattr(stmt, "whereClause", None)
         if whereClause:
@@ -65,7 +66,7 @@ class PgParser(Common):
 
         havingClause = getattr(stmt, "havingClause", None)
         if havingClause:
-            self.recurseCheckers._func_in_where_having(stmt, "HAVING")  
+            self.recurseCheckers._func_in_where_having(stmt, "HAVING")
 
         self.recurseCheckers._find_correlation(stmt, outer_names)
         self.recurseCheckers._many_params_in_IN(stmt)
@@ -79,20 +80,24 @@ class PgParser(Common):
         return inner_names | outer_names
 
     # * IN SELECT
-    def _columnRefStarCheck(self, val: ColumnRef):
+    def _columnRefStarCheck(self, val: ResTarget, table: str):
+        print("VALUES,", val, table)
         fields = val.fields
         for field in fields:
             if isinstance(field, A_Star):
-                self.recs.append(recommendations.select_star)
+                print(val)
+                self.recs.append(recommendations.select_star(table))
 
-    def _selectorCheck(self, f: RangeVar, inner_name: Set[str], froms: int):
+    def _selectorCheck(self, f: RangeVar, inner_name: Set[str]):
         print("СЕЛЕКТОР ЧЕК")
         if f.alias:
             alias = f.alias
             if isinstance(alias, Alias):
                 inner_name.add(alias.aliasname)
-        elif f.relname:
+        else:
             inner_name.add(f.relname)
+        print("relname", f.relname)
+        return f.relname
 
 
 # --- НОРМ

@@ -1,5 +1,3 @@
-# messages.py
-
 LONG_QUERY = {
     "severity": "low",
     "problem": "Запрос выполняется дольше 3 секунд",

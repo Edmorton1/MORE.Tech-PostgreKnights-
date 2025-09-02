@@ -1,3 +1,4 @@
+from unittest import result
 from psycopg2.extensions import connection, cursor
 from psycopg2.extras import RealDictCursor
 from psycopg2 import connect
@@ -62,5 +63,22 @@ class SQLRequests:
 			""")
             info = self.cur.fetchall()[0]["row_count"]
             return info
+
+        return self.makeRequest(callback)
+
+    def getColumns(self, table):
+        def callback():
+            self.cur.execute(f"""
+                SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = '{table}'
+            ORDER BY ordinal_position;
+            """)
+
+            result = self.cur.fetchall()
+            
+            cols = [row["column_name"] for row in result]
+
+            return cols
 
         return self.makeRequest(callback)

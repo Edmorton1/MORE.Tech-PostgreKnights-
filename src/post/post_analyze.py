@@ -1,5 +1,5 @@
 from typing import List
-from src.post.getExplainPlan import SQLRequests
+from src.common.request_to_db import SQLRequests
 
 # from src.post.getSyntaxData import AnalyzeSyntaxData
 from src.types.types import AnalysisIssue
