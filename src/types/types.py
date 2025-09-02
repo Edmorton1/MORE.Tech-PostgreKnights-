@@ -9,5 +9,7 @@ class AnalysisIssue(TypedDict):
 class AnalysisResult(TypedDict):
     issues: List[AnalysisIssue]
     query: str
-    risk_level: Literal["low", "medium", "high"]
-    risk_score: int
+    time: int
+    total_cost: int
+    # risk_level: Literal["low", "medium", "high"]
+    # risk_score: int

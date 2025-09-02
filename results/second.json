@@ -1,1 +1,7 @@
-[]
+{
+  "pre": [],
+  "post": {
+    "error": "column \"name\" does not exist\nLINE 1: EXPLAIN (FORMAT JSON) SELECT id, name FROM users\n                                         ^\n",
+    "query": "SELECT id, name FROM users"
+  }
+}

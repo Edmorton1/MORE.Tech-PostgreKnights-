@@ -2,6 +2,7 @@ from psycopg2.extensions import connection, cursor
 from psycopg2.extras import RealDictCursor
 from psycopg2 import connect
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
 
 load_dotenv()
@@ -26,11 +27,29 @@ class SQLRequests:
             self.conn.rollback()
             raise e
 
+    def _run_explain_analyze(self, query: str, analyze: bool):
+        plan = None
+        if analyze:
+            self.cur.execute(f"EXPLAIN (FORMAT JSON, ANALYZE TRUE) {query}")
+        else:
+            self.cur.execute(f"EXPLAIN (FORMAT JSON) {query}")
+        plan = self.cur.fetchall()[0]["QUERY PLAN"][0]["Plan"]
+        return plan
+
     def getExplainPlan(self, query):
         def callback():
-            self.cur.execute(f"EXPLAIN (FORMAT JSON) {query}")
-            plan = self.cur.fetchall()[0]["QUERY PLAN"][0]["Plan"]
-            return plan
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(self._run_explain_analyze, query, True)
+                try:
+                    plan = future.result(timeout=3)
+                    print("ANALYZE ВЫПОЛНИЛСЯ")
+                    return plan
+                except TimeoutError:
+                    future.cancel()
+                    print("НЕ ВЫПОЛНИЛСЯ ANALYZE")
+                    self.conn.cancel()
+                    self.conn.rollback()
+                    return self._run_explain_analyze(query, False)
 
         return self.makeRequest(callback)
 

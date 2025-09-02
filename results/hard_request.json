@@ -1,0 +1,31 @@
+{
+  "pre": [
+    {
+      "severity": "medium",
+      "problem": "IN с подзапросом",
+      "recommendation": "Используйте EXISTS или JOIN DISTINCT. Но лучше JOIN DISTINCT"
+    }
+  ],
+  "post": {
+    "query": "WITH active_users AS (\n    SELECT\n        u.id AS user_id,\n        u.username,\n        COUNT(p.id) AS posts_count\n    FROM users u\n    LEFT JOIN posts p ON u.id = p.user_id\n    GROUP BY u.id, u.username\n    HAVING COUNT(p.id) > 5\n)\nSELECT\n    au.user_id,\n    au.username,\n    au.posts_count,\n    STRING_AGG(p.title, ', ' ORDER BY p.id) AS recent_post_titles\nFROM active_users au\nJOIN posts p ON au.user_id = p.user_id\nWHERE p.id IN (\n    SELECT id\n    FROM posts\n    WHERE LENGTH(body) > 100\n)\nGROUP BY au.user_id, au.username, au.posts_count\nORDER BY au.posts_count DESC\nLIMIT 10;\n",
+    "risk_score": 319,
+    "risk_level": "high",
+    "issues": [
+      {
+        "severity": "high",
+        "problem": "JOIN проходится по всем рядам без индекса. Что сильно тормозит запрос",
+        "recommendation": "Поставьте индекс на одну из колонок, использующихся в JOIN"
+      },
+      {
+        "severity": "high",
+        "problem": "JOIN проходится по всем рядам без индекса. Что сильно тормозит запрос",
+        "recommendation": "Поставьте индекс на одну из колонок, использующихся в JOIN"
+      },
+      {
+        "severity": "high",
+        "problem": "JOIN проходится по всем рядам без индекса. Что сильно тормозит запрос",
+        "recommendation": "Поставьте индекс на одну из колонок, использующихся в JOIN"
+      }
+    ]
+  }
+}
