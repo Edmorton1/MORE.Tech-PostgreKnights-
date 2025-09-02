@@ -2,7 +2,7 @@ from typing import List
 from src.post.getExplainPlan import SQLRequests
 
 # from src.post.getSyntaxData import AnalyzeSyntaxData
-from src.types.types import AnalysisResult, AnalysisIssue
+from src.types.types import AnalysisIssue
 import src.post.recommendations as recommendations
 
 LIMIT_ROWS = 200
@@ -13,6 +13,7 @@ MAX_SORT_LIMIT = 300000
 class PostAnalyze:
     def __init__(self) -> None:
         self.SQLRequest = SQLRequests()
+        self.volume: dict = {}
         self.limit = 0
 
     def analyze_query(self, query: str) -> dict:
@@ -31,7 +32,11 @@ class PostAnalyze:
                 rows_count_table = self.SQLRequest.getTableRows(relation)
                 print(rows_count_table)
                 if plan_rows < rows_count_table / 2:
-                    issues.append(recommendations.full_table_scan(relation, rows_count_table, plan_rows))
+                    issues.append(
+                        recommendations.full_table_scan(
+                            relation, rows_count_table, plan_rows
+                        )
+                    )
 
             if plan_rows > LIMIT_ROWS:
                 issues.append(recommendations.big_result_set(plan_rows, LIMIT_ROWS))
@@ -40,8 +45,9 @@ class PostAnalyze:
             return {
                 "query": query,
                 "time": time,
-                "issues": issues,
+                "value": self.volume,
                 "total_cost": total_cost,
+                "issues": issues,
             }
         except Exception as e:
             return {"error": str(e), "query": query}
@@ -53,6 +59,14 @@ class PostAnalyze:
         relation = plan.get("Relation Name")
 
         print(relation, plan_rows)
+
+        if isinstance(plan_rows, int) and isinstance(relation, str):
+            print(plan_rows, relation)
+            relation_in_volume = self.volume.get(relation, None)
+            if relation_in_volume is not None:
+                self.volume[relation] += plan_rows
+            else:
+                self.volume[relation] = plan_rows
 
         if (
             node_type in ("Nested Loop", "Hash Join", "Merge Join")
@@ -79,7 +93,9 @@ class PostAnalyze:
                         gather_merge_plans[0].get("Plan Rows", 0) > MAX_SORT_LIMIT
                     )
                     if isManyRowsSorting and self.limit > MAX_SORT_LIMIT:
-                        issues.append(recommendations.big_sort_with_limit(MAX_SORT_LIMIT))
+                        issues.append(
+                            recommendations.big_sort_with_limit(MAX_SORT_LIMIT)
+                        )
                     elif isManyRowsSorting:
                         issues.append(recommendations.big_sort(MAX_SORT_LIMIT))
 
@@ -93,4 +109,4 @@ class PostAnalyze:
         elif score >= 30:
             return "medium"
         else:
-            return "low"
+            return "low"()

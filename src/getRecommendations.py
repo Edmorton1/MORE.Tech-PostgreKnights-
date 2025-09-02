@@ -7,7 +7,7 @@ from src.post.post_analyze import PostAnalyze
 
 def getRecommendations(query: str) -> Any:
     preRecsList = PgParser().getRecommendations(query)
-    postRecsList = PostAnalyze().analyze_query(query)
-    recsList = {"pre": preRecsList, "post": postRecsList}
+    # postRecsList = PostAnalyze().analyze_query(query)
+    # recsList = {"pre": preRecsList, "post": postRecsList}
 
-    return recsList
+    return preRecsList

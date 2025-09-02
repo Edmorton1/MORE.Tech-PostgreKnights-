@@ -2,7 +2,7 @@ from typing import List, Set
 from src.common.common import Common
 
 # fmt: off
-from pglast.ast import ColumnRef, A_Expr, JoinExpr, SubLink
+from pglast.ast import ColumnRef, A_Expr, JoinExpr, SubLink, FuncCall
 from pglast.enums import SubLinkType
 from src.types.types import AnalysisResult
 import src.pre.recommendations as recommendations
@@ -54,4 +54,11 @@ class RecurseCheckers(Common):
             if isinstance(node, SubLink) and node.subLinkType == SubLinkType.ANY_SUBLINK and node.subselect is not None:
                 self.recs.append(recommendations.in_subquery)
         
+        self.recurse_without_subquery(val, callback)
+
+    def _func_in_where_having(self, val, where):
+        def callback(node):
+            if isinstance(node, FuncCall):
+                self.recs.append(recommendations.function_in_where_having(where))
+
         self.recurse_without_subquery(val, callback)

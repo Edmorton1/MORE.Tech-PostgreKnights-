@@ -1,4 +1,3 @@
--- Создаём таблицы
 CREATE TABLE users (
     id INT,
     username TEXT,

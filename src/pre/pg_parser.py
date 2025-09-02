@@ -1,5 +1,6 @@
 from typing import List, Set
 from pglast import parse_sql
+from pglast.stream import IndentedStream
 from src.common.common import Common
 from src.pre.recurce_checkers import RecurseCheckers
 from pglast.ast import (
@@ -22,18 +23,11 @@ class PgParser(Common):
         self.recurseCheckers = RecurseCheckers(self.recs)
 
     def getRecommendations(self, query: str):
-        # sql = """
-        # WITH ids(id) AS (
-        # VALUES (101), (102), (103)
-        # )
-        # SELECT e.*
-        # FROM employees e
-        # JOIN ids i ON e.employee_id = i.id;
-        # """
-
         ast_tree: List[RawStmt] = parse_sql(query)
         stmt: SelectStmt = ast_tree[0].stmt
-        # print(stmt)
+        print(stmt)
+        # sql_back = IndentedStream()(stmt).replace("\n", " ")
+        # return sql_back
 
         def callback(val):
             if isinstance(val, SelectStmt):
@@ -65,12 +59,19 @@ class PgParser(Common):
                     if isinstance(val, ColumnRef):
                         self._columnRefStarCheck(val)
 
+        whereClause = getattr(stmt, "whereClause", None)
+        if whereClause:
+            self.recurseCheckers._func_in_where_having(stmt, "WHERE")
+
+        havingClause = getattr(stmt, "havingClause", None)
+        if havingClause:
+            self.recurseCheckers._func_in_where_having(stmt, "HAVING")  
+
         self.recurseCheckers._find_correlation(stmt, outer_names)
         self.recurseCheckers._many_params_in_IN(stmt)
         self.recurseCheckers._crossJoinCheck(stmt)
         self.recurseCheckers._subquery_in_IN(stmt)
 
-        print("FROMS", froms)
         if froms > 1:
             self.recs.append(recommendations.cross_join_multiple_tables)
         # print(inner_name, outer_names)
