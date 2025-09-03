@@ -29,7 +29,7 @@ jobs:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_PORT: ${{ secrets.DB_PORT }}
-        run: py main.py
+        run: python main.py
 
       - name: Upload JSON results
         uses: actions/upload-artifact@v4

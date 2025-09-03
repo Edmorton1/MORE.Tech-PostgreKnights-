@@ -2,14 +2,28 @@
   "pre": [
     {
       "severity": "medium",
+      "problem": "Использование функций в WHERE. Из-за этого не используется индекс",
+      "recommendation": "Используйте функции в WHERE только если без него не обойтись"
+    },
+    {
+      "severity": "low",
       "problem": "IN с подзапросом",
       "recommendation": "Используйте EXISTS или JOIN DISTINCT. Но лучше JOIN DISTINCT"
+    },
+    {
+      "severity": "medium",
+      "problem": "Использование функций в HAVING. Из-за этого не используется индекс",
+      "recommendation": "Используйте функции в HAVING только если без него не обойтись"
     }
   ],
   "post": {
     "query": "WITH active_users AS (\n    SELECT\n        u.id AS user_id,\n        u.username,\n        COUNT(p.id) AS posts_count\n    FROM users u\n    LEFT JOIN posts p ON u.id = p.user_id\n    GROUP BY u.id, u.username\n    HAVING COUNT(p.id) > 5\n)\nSELECT\n    au.user_id,\n    au.username,\n    au.posts_count,\n    STRING_AGG(p.title, ', ' ORDER BY p.id) AS recent_post_titles\nFROM active_users au\nJOIN posts p ON au.user_id = p.user_id\nWHERE p.id IN (\n    SELECT id\n    FROM posts\n    WHERE LENGTH(body) > 100\n)\nGROUP BY au.user_id, au.username, au.posts_count\nORDER BY au.posts_count DESC\nLIMIT 10;\n",
-    "risk_score": 319,
-    "risk_level": "high",
+    "time": 433.015,
+    "volume": {
+      "posts": 7777778,
+      "users": 1000000
+    },
+    "total_cost": 793051.37,
     "issues": [
       {
         "severity": "high",

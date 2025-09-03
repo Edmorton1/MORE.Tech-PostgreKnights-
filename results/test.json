@@ -3,13 +3,16 @@
     {
       "severity": "medium",
       "problem": "Используется * в FROM",
-      "recommendation": "Указать конкретные поля, которые нужны"
+      "recommendation": "Указать конкретные поля, которые нужны, все поля: ['id', 'username', 'email']"
     }
   ],
   "post": {
     "query": "SELECT * FROM users",
-    "risk_score": 30,
-    "risk_level": "medium",
+    "time": 77.719,
+    "volume": {
+      "users": 1000000
+    },
+    "total_cost": 26657.0,
     "issues": [
       {
         "severity": "medium",
