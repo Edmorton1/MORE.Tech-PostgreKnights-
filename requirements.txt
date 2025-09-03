@@ -6,7 +6,9 @@ Flask==3.1.2
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.2
+pglast==7.7
 psycopg2-binary==2.9.10
 pycodestyle==2.14.0
 python-dotenv==1.1.1
+setuptools==80.9.0
 Werkzeug==3.1.3

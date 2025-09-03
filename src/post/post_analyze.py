@@ -4,10 +4,13 @@ from src.common.request_to_db import SQLRequests
 # from src.post.getSyntaxData import AnalyzeSyntaxData
 from src.types.types import AnalysisIssue
 import src.post.recommendations as recommendations
+from settings import config
 
-LIMIT_ROWS = 200
-BIG_TABLE_ROWS = 10000
-MAX_SORT_LIMIT = 300000
+LIMIT_ROWS = config["LIMIT_ROWS"] or 200
+BIG_TABLE_ROWS = config["BIG_TABLE_ROWS"] or 10000
+MAX_SORT_LIMIT = config["MAX_SORT_LIMIT"] or 300000
+ANALYZE_TIMEOUT = config["ANALYZE_TIMEOUT"] or 3
+MAKE_ANALYZE = config["MAKE_ANALYZE"] or False
 
 
 class PostAnalyze:
@@ -24,9 +27,12 @@ class PostAnalyze:
             relation = plan.get("Relation Name")
             node_type = plan.get("Node Type")
             total_cost = plan.get("Total Cost")
-            time = plan.get("Actual Total Time", "Больше 3 секунд")
+            time = plan.get(
+                "Actual Total Time",
+                f"Больше {ANALYZE_TIMEOUT} секунд" if MAKE_ANALYZE else None,
+            )
             if isinstance(time, str):
-                issues.append(recommendations.LONG_QUERY)
+                issues.append(recommendations.LONG_QUERY(time))
 
             if relation and plan_rows and node_type == "Seq Scan":
                 rows_count_table = self.SQLRequest.getTableRows(relation)
@@ -45,7 +51,7 @@ class PostAnalyze:
             return {
                 "query": query,
                 "time": time,
-                "value": self.volume,
+                "volume": self.volume,
                 "total_cost": total_cost,
                 "issues": issues,
             }
@@ -102,11 +108,3 @@ class PostAnalyze:
         for subplan in plan.get("Plans", []):
             issues.extend(self._find_issues_in_plan(subplan))
         return issues
-
-    def _get_risk_level(self, score: int) -> str:
-        if score >= 70:
-            return "high"
-        elif score >= 30:
-            return "medium"
-        else:
-            return "low"()

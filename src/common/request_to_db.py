@@ -5,8 +5,12 @@ from psycopg2 import connect
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
+from settings import config
 
 load_dotenv()
+
+MAKE_ANALYZE = config["MAKE_ANALYZE"] or False
+ANALYZE_TIMEOUT = config["ANALYZE_TIMEOUT"] or 3
 
 
 class SQLRequests:
@@ -30,7 +34,7 @@ class SQLRequests:
 
     def _run_explain_analyze(self, query: str, analyze: bool):
         plan = None
-        if analyze:
+        if analyze and MAKE_ANALYZE:
             self.cur.execute(f"EXPLAIN (FORMAT JSON, ANALYZE TRUE) {query}")
         else:
             self.cur.execute(f"EXPLAIN (FORMAT JSON) {query}")
@@ -42,7 +46,7 @@ class SQLRequests:
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(self._run_explain_analyze, query, True)
                 try:
-                    plan = future.result(timeout=3)
+                    plan = future.result(timeout=ANALYZE_TIMEOUT)
                     print("ANALYZE ВЫПОЛНИЛСЯ")
                     return plan
                 except TimeoutError:
@@ -76,7 +80,7 @@ class SQLRequests:
             """)
 
             result = self.cur.fetchall()
-            
+
             cols = [row["column_name"] for row in result]
 
             return cols

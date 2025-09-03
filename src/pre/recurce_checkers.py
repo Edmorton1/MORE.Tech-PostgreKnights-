@@ -6,8 +6,9 @@ from pglast.ast import ColumnRef, A_Expr, JoinExpr, SubLink, FuncCall
 from pglast.enums import SubLinkType
 from src.types.types import AnalysisResult
 import src.pre.recommendations as recommendations
+from settings import config
 
-MAX_PARAMS_IN_IN = 2
+MAX_PARAMS_IN_IN = config["MAX_PARAMS_IN_IN"] or 2
 
 class RecurseCheckers(Common):
     def __init__(self, recs: List) -> None:
