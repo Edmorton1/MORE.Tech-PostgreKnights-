@@ -1,7 +1,18 @@
 {
   "pre": [],
   "post": {
-    "error": "column \"name\" does not exist\nLINE 1: EXPLAIN (FORMAT JSON, ANALYZE TRUE) SELECT id, name FROM use...\n                                                       ^\n",
-    "query": "SELECT id, name FROM users"
+    "query": "SELECT id FROM users",
+    "time": null,
+    "volume": {
+      "users": 1000000
+    },
+    "total_cost": 26657.0,
+    "issues": [
+      {
+        "severity": "medium",
+        "problem": "Возврат большого кол-ва значений, сейчас установлен лимит 200. Запрос вернёт 1000000 полей",
+        "recommendation": "Установить LIMIT и делать запросы с пагинацией(метод с курсором)"
+      }
+    ]
   }
 }

@@ -2,33 +2,23 @@
   "pre": [
     {
       "severity": "medium",
-      "problem": "Использование функций в WHERE. Из-за этого не используется индекс",
-      "recommendation": "Используйте функции в WHERE только если без него не обойтись"
-    },
-    {
-      "severity": "low",
-      "problem": "IN с подзапросом",
-      "recommendation": "Используйте EXISTS или JOIN DISTINCT. Но лучше JOIN DISTINCT"
-    },
-    {
-      "severity": "medium",
-      "problem": "Использование функций в HAVING. Из-за этого не используется индекс",
-      "recommendation": "Используйте функции в HAVING только если без него не обойтись"
+      "problem": "Использование функций в WHERE или HAVING. Из-за этого не используется индекс",
+      "recommendation": "Используйте функции в WHERE или HAVING только если без них не обойтись"
     }
   ],
   "post": {
-    "query": "WITH active_users AS (\n    SELECT\n        u.id AS user_id,\n        u.username,\n        COUNT(p.id) AS posts_count\n    FROM users u\n    LEFT JOIN posts p ON u.id = p.user_id\n    GROUP BY u.id, u.username\n    HAVING COUNT(p.id) > 5\n)\nSELECT\n    au.user_id,\n    au.username,\n    au.posts_count,\n    STRING_AGG(p.title, ', ' ORDER BY p.id) AS recent_post_titles\nFROM active_users au\nJOIN posts p ON au.user_id = p.user_id\nWHERE p.id IN (\n    SELECT id\n    FROM posts\n    WHERE LENGTH(body) > 100\n)\nGROUP BY au.user_id, au.username, au.posts_count\nORDER BY au.posts_count DESC\nLIMIT 10;\n",
-    "time": 433.015,
+    "query": "WITH user_posts AS (\n    SELECT\n        u.id AS user_id,\n        u.username,\n        u.email,\n        COUNT(p.id) AS total_posts,\n        COUNT(CASE WHEN LENGTH(p.body) > 100 THEN 1 END) AS long_posts_count\n    FROM users u\n    LEFT JOIN posts p ON u.id = p.user_id\n    GROUP BY u.id, u.username, u.email\n    HAVING COUNT(p.id) > 5\n)\nSELECT\n    up.user_id,\n    up.username,\n    up.email,\n    up.total_posts,\n    up.long_posts_count,\n    STRING_AGG(p.title, ', ' ORDER BY p.id) AS recent_post_titles\nFROM user_posts up\nJOIN posts p ON up.user_id = p.user_id\nLEFT JOIN users u2 ON p.user_id = u2.id      -- дополнительный JOIN на users\nLEFT JOIN posts p2 ON u2.id = p2.user_id     -- ещё один JOIN на posts\nWHERE LENGTH(p.body) > 100\nGROUP BY up.user_id, up.username, up.email, up.total_posts, up.long_posts_count\nORDER BY up.total_posts DESC\nLIMIT 10;\n",
+    "time": null,
     "volume": {
       "posts": 7777778,
-      "users": 1000000
+      "users": 1416667
     },
-    "total_cost": 793051.37,
+    "total_cost": 963483.52,
     "issues": [
       {
-        "severity": "high",
-        "problem": "JOIN проходится по всем рядам без индекса. Что сильно тормозит запрос",
-        "recommendation": "Поставьте индекс на одну из колонок, использующихся в JOIN"
+        "severity": "medium",
+        "problem": "Сортировка по большому объему данных без индекса. В приложении установлен лимит 300000",
+        "recommendation": "Установить индекс"
       },
       {
         "severity": "high",
@@ -37,8 +27,18 @@
       },
       {
         "severity": "high",
-        "problem": "JOIN проходится по всем рядам без индекса. Что сильно тормозит запрос",
-        "recommendation": "Поставьте индекс на одну из колонок, использующихся в JOIN"
+        "problem": "Полное сканирование таблицы 'posts', проходится по каждому значению из 5000000, хотя нужно 2083333",
+        "recommendation": "Создайте индекс по колонке из WHERE"
+      },
+      {
+        "severity": "high",
+        "problem": "Полное сканирование таблицы 'posts', проходится по каждому значению из 5000000, хотя нужно 694445",
+        "recommendation": "Создайте индекс по колонке из WHERE"
+      },
+      {
+        "severity": "high",
+        "problem": "Полное сканирование таблицы 'users', проходится по каждому значению из 1000000, хотя нужно 416667",
+        "recommendation": "Создайте индекс по колонке из WHERE"
       }
     ]
   }

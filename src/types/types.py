@@ -6,10 +6,13 @@ class AnalysisIssue(TypedDict):
     recommendation: str
 
 
+VolumeType = dict[str, int]
+
 class AnalysisResult(TypedDict):
-    issues: List[AnalysisIssue]
     query: str
-    time: int
+    time: int | str
+    volume: dict[str, int]
     total_cost: int
+    issues: List[AnalysisIssue]
     # risk_level: Literal["low", "medium", "high"]
     # risk_score: int

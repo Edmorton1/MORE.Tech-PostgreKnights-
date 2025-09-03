@@ -8,7 +8,7 @@
   ],
   "post": {
     "query": "SELECT * FROM users",
-    "time": 77.719,
+    "time": null,
     "volume": {
       "users": 1000000
     },

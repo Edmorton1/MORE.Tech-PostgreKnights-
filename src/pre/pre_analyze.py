@@ -1,17 +1,19 @@
 from typing import List, Set
 from pglast import parse_sql
-from pglast.stream import IndentedStream
-from src.common.common import Common
-from src.pre.recurse_checkers import RecurseCheckers
+
+# from pglast.stream import IndentedStream
+from src.pre.types import MutableProps
+from src.pre.common import Common
+from src.pre.recurse_check import RecurseCheckers
 from pglast.ast import RawStmt, SelectStmt
-from src.types.types import AnalysisResult
+from src.types.types import AnalysisIssue
 import src.pre.recommendations as recommendations
 from src.pre.not_recurse_check import NotRecourseCheck
 
 
 class PreAnalyze(Common):
     def __init__(self):
-        self.recs = []
+        self.recs: List[AnalysisIssue] = []
         self.outer_names: Set[str] = set()
         self.recurseCheckers = RecurseCheckers(self.recs)
         self.notRecurseCheck = NotRecourseCheck(self.recs)
@@ -23,7 +25,7 @@ class PreAnalyze(Common):
         # sql_back = IndentedStream()(stmt).replace("\n", " ")
         # return sql_back
 
-        def callback(val):
+        def callback(val: object):
             if isinstance(val, SelectStmt):
                 self.outer_names.update(
                     self._checkRecommendations(val, self.outer_names)
@@ -34,15 +36,15 @@ class PreAnalyze(Common):
 
     def _checkRecommendations(self, stmt: SelectStmt, outer_names: Set[str] = set()):
         inner_names: Set[str] = set()
-        mutable_props = {"froms": 0, "table": None}
+        mutable_props: MutableProps = {"froms": 0, "table": None}
 
         self.notRecurseCheck.many_table_from(mutable_props, inner_names, stmt)
         self.notRecurseCheck.star(mutable_props["table"], stmt)
-        self.recurseCheckers._func_in_where_having(stmt)
-        self.recurseCheckers._find_correlation(stmt, outer_names)
-        self.recurseCheckers._many_params_in_IN(stmt)
-        self.recurseCheckers._crossJoinCheck(stmt)
-        self.recurseCheckers._subquery_in_IN(stmt)
+        self.recurseCheckers.func_in_where_having(stmt)
+        self.recurseCheckers.find_correlation(stmt, outer_names)
+        self.recurseCheckers.many_params_in_IN(stmt)
+        self.recurseCheckers.crossJoinCheck(stmt)
+        self.recurseCheckers.subquery_in_IN(stmt)
 
         print("FROMS", mutable_props["froms"])
         if mutable_props["froms"] > 1:

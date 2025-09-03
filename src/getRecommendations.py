@@ -1,6 +1,4 @@
 from typing import Any
-
-# from src.pre.pg_parser import PgParser
 from src.pre.pre_analyze import PreAnalyze
 from src.post.post_analyze import PostAnalyze
 
