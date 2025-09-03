@@ -22,7 +22,6 @@ class RecurseCheckers(Common):
         else:
             self.recs.append(issue)
 
-    # КОРЕЛЛИРОВАННЫЕ
     def _find_correlation(self, val, inner_names: Set[str]):
         def callback(node):
             if isinstance(node, ColumnRef):
@@ -45,7 +44,6 @@ class RecurseCheckers(Common):
 
         self.recurse(val, callback)
         
-    # CROSS JOIN
     def _crossJoinCheck(self, val):
         def callback(node):
             if isinstance(node, JoinExpr):
@@ -64,9 +62,13 @@ class RecurseCheckers(Common):
         
         self.recurse_without_subquery(val, callback)
 
-    def _func_in_where_having(self, val, where):
+    def _func_in_where_having(self, val):
         def callback(node):
             if isinstance(node, FuncCall):
-                self.push_to_recs(recommendations.function_in_where_having(where))
+                self.push_to_recs(recommendations.function_in_where_having)
 
-        self.recurse_without_subquery(val, callback)
+        nodes = ["whereClause", "havingClause"]
+        for clauseName in nodes:
+            clause = getattr(val, clauseName, None)
+            if clause:
+                self.recurse_without_subquery(val, callback)

@@ -13,7 +13,7 @@ def select_star(table: str | None):
     return {
         "severity": "medium",
         "problem": "Используется * в FROM",
-        "recommendation": f"Указать конкретные поля, которые нужны, все поля: {str(SQLReq.getColumns(table)) if table else ""}",
+        "recommendation": f"Указать конкретные поля, которые нужны, все поля: {str(SQLReq.getColumns(table)) if table else ''}",
     }
 
 
@@ -46,9 +46,8 @@ def big_in_list(max_params: int):
     }
 
 
-def function_in_where_having(where):
-    return {
-        "severity": "medium",
-        "problem": f"Использование функций в {where}. Из-за этого не используется индекс",
-        "recommendation": f"Используйте функции в {where} только если без него не обойтись",
-    }
+function_in_where_having = {
+    "severity": "medium",
+    "problem": "Использование функций в WHERE или HAVING. Из-за этого не используется индекс",
+    "recommendation": "Используйте функции в WHERE или HAVING только если без них не обойтись",
+}
