@@ -1,6 +1,6 @@
 {
-  "pre": [],
-  "post": {
+  "pre_analyze": [],
+  "post_analyze": {
     "query": "SELECT id FROM users",
     "time": null,
     "volume": {

@@ -1,12 +1,12 @@
 {
-  "pre": [
+  "pre_analyze": [
     {
       "severity": "medium",
       "problem": "Используется * в FROM",
       "recommendation": "Указать конкретные поля, которые нужны, все поля: ['id', 'username', 'email']"
     }
   ],
-  "post": {
+  "post_analyze": {
     "query": "SELECT * FROM users",
     "time": null,
     "volume": {

@@ -44,7 +44,7 @@ def big_sort_with_limit(max_limit: int) -> AnalysisIssue:
 
 def big_sort(max_limit: int) -> AnalysisIssue:
     return {
-        "severity": "medium",
+        "severity": "high",
         "problem": f"Сортировка по большому объему данных без индекса. В приложении установлен лимит {max_limit}",
         "recommendation": "Установить индекс",
     }

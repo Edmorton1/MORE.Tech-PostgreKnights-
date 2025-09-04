@@ -12,7 +12,6 @@ BIG_TABLE_ROWS = config["BIG_TABLE_ROWS"] or 10000
 ANALYZE_TIMEOUT = config["ANALYZE_TIMEOUT"] or 3
 MAKE_ANALYZE = config["MAKE_ANALYZE"] or False
 
-
 class PostAnalyze:
     def __init__(self) -> None:
         self.SQLRequest = SQLRequests()
@@ -22,33 +21,41 @@ class PostAnalyze:
         self.postCheck = PostCheck(self.issues)
 
     def analyze_query(self, query: str) -> AnalysisResult:
-        plan = self.SQLRequest.getExplainPlan(query)
-        self._find_issues_in_plan(plan)
-        plan_rows = plan.get("Plan Rows", 0)
-        total_cost = plan.get("Total Cost")
+        try:
+            plan = self.SQLRequest.getExplainPlan(query)
+            self._find_issues_in_plan(plan)
+            plan_rows = plan.get("Plan Rows", 0)
+            total_cost = plan.get("Total Cost")
 
-        time = plan.get(
-            "Actual Total Time",
-            f"Больше {ANALYZE_TIMEOUT} секунд" if MAKE_ANALYZE else None,
-        )
-
-        if isinstance(time, str):
-            push_to_recs(recommendations.LONG_QUERY(time), self.issues)
-
-        if plan_rows > LIMIT_ROWS:
-            push_to_recs(
-                recommendations.big_result_set(plan_rows, LIMIT_ROWS), self.issues
+            time = plan.get(
+                "Actual Total Time",
+                f"Больше {ANALYZE_TIMEOUT} секунд" if MAKE_ANALYZE else None,
             )
 
-        print(self.issues)
-        # return plan
-        return {
-            "query": query,
-            "time": time,
-            "volume": self.volume,
-            "total_cost": total_cost,
-            "issues": self.issues,
-        }
+            if isinstance(time, str):
+                push_to_recs(recommendations.LONG_QUERY(time), self.issues)
+
+            if plan_rows > LIMIT_ROWS:
+                push_to_recs(
+                    recommendations.big_result_set(plan_rows, LIMIT_ROWS), self.issues
+                )
+
+            print(self.issues)
+            # return plan
+            return {
+
+                "query": query,
+                "time": time,
+                "volume": self.volume,
+                "total_cost": total_cost,
+                "issues": self.issues,
+            }
+        except Exception as e:
+            print(f"ОШИБКА: {e}")
+            return {
+                "query": query,
+                "issues": ["ОШИБКА: Перепроверьте запрос"],
+            }
 
     def _find_issues_in_plan(self, plan: PlanNode) -> None:
         node_type = plan.get("Node Type")

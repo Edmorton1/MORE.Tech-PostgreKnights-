@@ -89,3 +89,23 @@ class SQLRequests:
             return cols
 
         return self.makeRequest(callback)
+
+    def getStatistic(self, limit: int) -> List[object]:
+        def callback() -> List[str]:
+            self.cur.execute(f"""
+            SELECT
+                REPLACE(query, E'\n', ' ') AS query_single_line,
+                calls,
+                ROUND(total_exec_time) AS total_exec_time,
+                ROUND(mean_exec_time) AS mean_exec_time,
+                rows
+            FROM pg_stat_statements
+            WHERE query LIKE 'SELECT%'
+            ORDER BY total_exec_time DESC
+            LIMIT {limit}
+            """)
+            result = self.cur.fetchall()
+
+            return result
+
+        return self.makeRequest(callback)

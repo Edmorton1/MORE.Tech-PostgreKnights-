@@ -8,13 +8,17 @@ class Config(TypedDict):
     MAKE_ANALYZE: bool
     ANALYZE_TIMEOUT: int
     MAX_PARAMS_IN_IN: int
+    COUNT_FREQUENT_AND_VORACIOUS_REQUESTS: int
+
 
 config: Config = {
     "LIMIT_ROWS": 200,
     # МАКСИМАЛЬНОЕ КОЛИЧЕСТВО РЯДОВ БЕЗ ИНДЕКСА
+    # TODO: Переименовать в MAX_ROWS_WITHOUT_INDEX
     "BIG_TABLE_ROWS": 10000,
     "MAX_SORT_LIMIT": 300000,
     "MAKE_ANALYZE": False,
     "ANALYZE_TIMEOUT": 3,
     "MAX_PARAMS_IN_IN": 2,
+    "COUNT_FREQUENT_AND_VORACIOUS_REQUESTS": 0,
 }

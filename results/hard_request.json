@@ -1,12 +1,12 @@
 {
-  "pre": [
+  "pre_analyze": [
     {
       "severity": "medium",
       "problem": "Использование функций в WHERE или HAVING. Из-за этого не используется индекс",
       "recommendation": "Используйте функции в WHERE или HAVING только если без них не обойтись"
     }
   ],
-  "post": {
+  "post_analyze": {
     "query": "WITH user_posts AS (\n    SELECT\n        u.id AS user_id,\n        u.username,\n        u.email,\n        COUNT(p.id) AS total_posts,\n        COUNT(CASE WHEN LENGTH(p.body) > 100 THEN 1 END) AS long_posts_count\n    FROM users u\n    LEFT JOIN posts p ON u.id = p.user_id\n    GROUP BY u.id, u.username, u.email\n    HAVING COUNT(p.id) > 5\n)\nSELECT\n    up.user_id,\n    up.username,\n    up.email,\n    up.total_posts,\n    up.long_posts_count,\n    STRING_AGG(p.title, ', ' ORDER BY p.id) AS recent_post_titles\nFROM user_posts up\nJOIN posts p ON up.user_id = p.user_id\nLEFT JOIN users u2 ON p.user_id = u2.id      -- дополнительный JOIN на users\nLEFT JOIN posts p2 ON u2.id = p2.user_id     -- ещё один JOIN на posts\nWHERE LENGTH(p.body) > 100\nGROUP BY up.user_id, up.username, up.email, up.total_posts, up.long_posts_count\nORDER BY up.total_posts DESC\nLIMIT 10;\n",
     "time": null,
     "volume": {
@@ -16,7 +16,7 @@
     "total_cost": 963483.52,
     "issues": [
       {
-        "severity": "medium",
+        "severity": "high",
         "problem": "Сортировка по большому объему данных без индекса. В приложении установлен лимит 300000",
         "recommendation": "Установить индекс"
       },

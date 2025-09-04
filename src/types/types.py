@@ -1,4 +1,4 @@
-from typing import List, Literal, TypedDict
+from typing import List, Literal, Optional, TypedDict
 
 class AnalysisIssue(TypedDict):
     severity: Literal["low", "medium", "high"]
@@ -14,5 +14,6 @@ class AnalysisResult(TypedDict):
     volume: dict[str, int]
     total_cost: int
     issues: List[AnalysisIssue]
+    frequent_and_voracious_requests: Optional[List]
     # risk_level: Literal["low", "medium", "high"]
     # risk_score: int

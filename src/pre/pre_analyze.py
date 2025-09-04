@@ -19,20 +19,24 @@ class PreAnalyze(Common):
         self.notRecurseCheck = NotRecourseCheck(self.recs)
 
     def getRecommendations(self, query: str):
-        ast_tree: List[RawStmt] = parse_sql(query)
-        stmt: SelectStmt = ast_tree[0].stmt
-        print("STMT", stmt)
-        # sql_back = IndentedStream()(stmt).replace("\n", " ")
-        # return sql_back
+        try:
+            ast_tree: List[RawStmt] = parse_sql(query)
+            stmt: SelectStmt = ast_tree[0].stmt
+            print("STMT", stmt)
+            # sql_back = IndentedStream()(stmt).replace("\n", " ")
+            # return sql_back
 
-        def callback(val: object):
-            if isinstance(val, SelectStmt):
-                self.outer_names.update(
-                    self._checkRecommendations(val, self.outer_names)
-                )
+            def callback(val: object):
+                if isinstance(val, SelectStmt):
+                    self.outer_names.update(
+                        self._checkRecommendations(val, self.outer_names)
+                    )
 
-        self.recurse(stmt, callback)
-        return self.recs
+            self.recurse(stmt, callback)
+            return self.recs
+        except Exception as e:
+            print(f"ОШИБКА: {e}")
+            return ["ОШИБКА: Перепроверьте запрос"]
 
     def _checkRecommendations(self, stmt: SelectStmt, outer_names: Set[str] = set()):
         inner_names: Set[str] = set()
