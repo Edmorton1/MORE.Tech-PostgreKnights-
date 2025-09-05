@@ -11,7 +11,9 @@ def getRecommendations(query: str) -> Any:
     recsList = {
         "pre_analyze": preRecsList,
         "post_analyze": postRecsList,
-        "frequent_and_voracious_requests": frequent_and_voracious_requests,
     }
+    
+    if frequent_and_voracious_requests:
+        recsList["statistic"] = frequent_and_voracious_requests
 
     return recsList

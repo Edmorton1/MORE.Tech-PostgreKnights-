@@ -5,7 +5,7 @@ from settings import config
 from src.types.types import AnalysisIssue
 from src.common.push_to_recs import push_to_recs
 
-BIG_TABLE_ROWS = config["BIG_TABLE_ROWS"] or 10000
+MAX_ROWS_WITHOUT_INDEX = config["MAX_ROWS_WITHOUT_INDEX"] or 10000
 MAX_SORT_LIMIT = config["MAX_SORT_LIMIT"] or 300000
 
 
@@ -30,7 +30,7 @@ class PostCheck:
     def join_without_index(self, node_type: str, plan_rows: int, plans: PlanType):
         if (
             node_type in ("Nested Loop", "Hash Join", "Merge Join")
-            and plan_rows > BIG_TABLE_ROWS
+            and plan_rows > MAX_ROWS_WITHOUT_INDEX
         ):
             isUsesIndex = False
 

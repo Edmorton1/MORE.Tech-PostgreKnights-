@@ -8,7 +8,7 @@ from settings import config
 from src.common.push_to_recs import push_to_recs
 
 LIMIT_ROWS = config["LIMIT_ROWS"] or 200
-BIG_TABLE_ROWS = config["BIG_TABLE_ROWS"] or 10000
+MAX_ROWS_WITHOUT_INDEX = config["MAX_ROWS_WITHOUT_INDEX"] or 10000
 ANALYZE_TIMEOUT = config["ANALYZE_TIMEOUT"] or 3
 MAKE_ANALYZE = config["MAKE_ANALYZE"] or False
 
