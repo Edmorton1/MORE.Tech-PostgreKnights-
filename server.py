@@ -1,13 +1,14 @@
 import os
-from flask import Flask, jsonify, request, abort
+from flask import Flask, jsonify, request, abort, send_from_directory
 from werkzeug.exceptions import HTTPException
 from src.getRecommendations import getRecommendations
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 load_dotenv()
 
-app = Flask(__name__)
-
+app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), "static"), static_url_path="")
+CORS(app, origins=["http://127.0.0.1:5500"])
 
 @app.errorhandler(HTTPException)
 def handle_http_exception(e):
@@ -16,7 +17,7 @@ def handle_http_exception(e):
 
 
 @app.route("/", methods=["POST"])
-def test():
+def post():
     data: dict = request.get_json()
     if not data or "query" not in data:
         abort(400, description="Нет обязательного параметра query")
@@ -29,13 +30,9 @@ def test():
     return jsonify(recsList)
 
 
-# @app.route("/", defaults={"path": ""})
-# @app.route("/<path:path>")
-# def serve_file(path):
-#     if path and os.path.exists(path):
-#         return send_from_directory(".", path)
-#     else:
-#         return send_from_directory(".", "index.html")
+@app.route("/", methods=["GET"])
+def get():
+    return send_from_directory("static", "index.html")
 
 
 if __name__ == "__main__":
