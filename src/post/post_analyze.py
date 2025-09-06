@@ -1,4 +1,5 @@
 from typing import List
+from src.common.logger import logger
 from src.post.types import PlanNode
 from src.common.request_to_db import SQLRequests
 from src.types.types import AnalysisIssue, AnalysisResult, VolumeType
@@ -29,7 +30,7 @@ class PostAnalyze:
 
             time = plan.get(
                 "Actual Total Time",
-                f"Больше {ANALYZE_TIMEOUT} секунд" if MAKE_ANALYZE else None,
+                f"{ANALYZE_TIMEOUT}" if MAKE_ANALYZE else None,
             )
 
             if isinstance(time, str):
@@ -39,8 +40,6 @@ class PostAnalyze:
                 push_to_recs(
                     recommendations.big_result_set(plan_rows, LIMIT_ROWS), self.issues
                 )
-
-            print(self.issues)
             # return plan
             return {
 
@@ -51,7 +50,7 @@ class PostAnalyze:
                 "issues": self.issues,
             }
         except Exception as e:
-            print(f"ОШИБКА: {e}")
+            logger.error({"POST_ANALYZE_ERROR": e})
             return {
                 "query": query,
                 "issues": ["ОШИБКА: Перепроверьте запрос"],

@@ -5,6 +5,7 @@ from psycopg2 import connect
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import os
+from src.common.logger import logger
 from src.post.types import PlanNode
 from settings import config
 
@@ -50,11 +51,11 @@ class SQLRequests:
                 future = executor.submit(self._run_explain_analyze, query, True)
                 try:
                     plan = future.result(timeout=ANALYZE_TIMEOUT)
-                    print("ANALYZE ВЫПОЛНИЛСЯ")
+                    logger.info("ANALYZE ВЫПОЛНИЛСЯ")
                     return plan
                 except TimeoutError:
                     future.cancel()
-                    print("НЕ ВЫПОЛНИЛСЯ ANALYZE")
+                    logger.info("ANALYZE ВЫПОЛНИЛСЯ")
                     self.conn.cancel()
                     self.conn.rollback()
                     return self._run_explain_analyze(query, False)

@@ -8,18 +8,13 @@
   ],
   "post_analyze": {
     "query": "WITH user_posts AS (\n    SELECT\n        u.id AS user_id,\n        u.username,\n        u.email,\n        COUNT(p.id) AS total_posts,\n        COUNT(CASE WHEN LENGTH(p.body) > 100 THEN 1 END) AS long_posts_count\n    FROM users u\n    LEFT JOIN posts p ON u.id = p.user_id\n    GROUP BY u.id, u.username, u.email\n    HAVING COUNT(p.id) > 5\n)\nSELECT\n    up.user_id,\n    up.username,\n    up.email,\n    up.total_posts,\n    up.long_posts_count,\n    STRING_AGG(p.title, ', ' ORDER BY p.id) AS recent_post_titles\nFROM user_posts up\nJOIN posts p ON up.user_id = p.user_id\nLEFT JOIN users u2 ON p.user_id = u2.id      -- дополнительный JOIN на users\nLEFT JOIN posts p2 ON u2.id = p2.user_id     -- ещё один JOIN на posts\nWHERE LENGTH(p.body) > 100\nGROUP BY up.user_id, up.username, up.email, up.total_posts, up.long_posts_count\nORDER BY up.total_posts DESC\nLIMIT 10;\n",
-    "time": null,
+    "time": 878.876,
     "volume": {
-      "posts": 7777778,
+      "posts": 8749882,
       "users": 1416667
     },
-    "total_cost": 963483.52,
+    "total_cost": 1863536.12,
     "issues": [
-      {
-        "severity": "high",
-        "problem": "Сортировка по большому объему данных без индекса. В приложении установлен лимит 300000",
-        "recommendation": "Установить индекс"
-      },
       {
         "severity": "high",
         "problem": "JOIN проходится по всем рядам без индекса. Что сильно тормозит запрос",
@@ -27,19 +22,28 @@
       },
       {
         "severity": "high",
-        "problem": "Полное сканирование таблицы 'posts', проходится по каждому значению из 5000000, хотя нужно 2083333",
-        "recommendation": "Создайте индекс по колонке из WHERE"
-      },
-      {
-        "severity": "high",
-        "problem": "Полное сканирование таблицы 'posts', проходится по каждому значению из 5000000, хотя нужно 694445",
+        "problem": "Полное сканирование таблицы 'posts', проходится по каждому значению из 4999933, хотя нужно 2083305",
         "recommendation": "Создайте индекс по колонке из WHERE"
       },
       {
         "severity": "high",
         "problem": "Полное сканирование таблицы 'users', проходится по каждому значению из 1000000, хотя нужно 416667",
         "recommendation": "Создайте индекс по колонке из WHERE"
+      },
+      {
+        "severity": "high",
+        "problem": "Полное сканирование таблицы 'posts', проходится по каждому значению из 4999933, хотя нужно 1666644",
+        "recommendation": "Создайте индекс по колонке из WHERE"
       }
     ]
-  }
+  },
+  "statistic": [
+    {
+      "query_single_line": "SELECT                 REPLACE(query, $1, $2) AS query_single_line,                 calls,                 ROUND(total_exec_time) AS total_exec_time,                 ROUND(mean_exec_time) AS mean_exec_time,                 rows             FROM pg_stat_statements             WHERE query LIKE $3             ORDER BY total_exec_time DESC             LIMIT $4",
+      "calls": 43,
+      "total_exec_time": 21.0,
+      "mean_exec_time": 0.0,
+      "rows": 49
+    }
+  ]
 }

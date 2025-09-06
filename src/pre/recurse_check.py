@@ -20,7 +20,6 @@ class RecurseCheckers(Common):
         def callback(node: object):
             if isinstance(node, ColumnRef):
                 name = getattr(node.fields[0], "sval", None)
-                # print(inner_names, name, node)
                 if name in inner_names:
                     push_to_recs(recommendations.correlated_subquery(name), self.recs)
 
@@ -41,7 +40,6 @@ class RecurseCheckers(Common):
     def crossJoinCheck(self, val: object):
         def callback(node: object):
             if isinstance(node, JoinExpr):
-                # print(node)
                 join_type = node.jointype
                 quals = getattr(node, "quals", None)
                 if join_type == 0 and quals is None:

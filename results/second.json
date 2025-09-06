@@ -1,18 +1,44 @@
 {
-  "pre_analyze": [],
+  "pre_analyze": [
+    {
+      "severity": "medium",
+      "problem": "Используется * в FROM",
+      "recommendation": "Указать конкретные поля, которые нужны, все поля: "
+    }
+  ],
   "post_analyze": {
-    "query": "SELECT id FROM users",
-    "time": null,
+    "query": "SELECT * FROM users u\nJOIN posts p ON u.id = p.user_id",
+    "time": "3",
     "volume": {
+      "posts": 4999933,
       "users": 1000000
     },
-    "total_cost": 26657.0,
+    "total_cost": 328746.09,
     "issues": [
       {
+        "severity": "high",
+        "problem": "JOIN проходится по всем рядам без индекса. Что сильно тормозит запрос",
+        "recommendation": "Поставьте индекс на одну из колонок, использующихся в JOIN"
+      },
+      {
+        "severity": "low",
+        "problem": "Запрос выполняется дольше 3 секунд",
+        "recommendation": "Улучшите оптимизацию"
+      },
+      {
         "severity": "medium",
-        "problem": "Возврат большого кол-ва значений, сейчас установлен лимит 200. Запрос вернёт 1000000 полей",
+        "problem": "Возврат большого кол-ва значений, сейчас установлен лимит 200. Запрос вернёт 4940201 полей",
         "recommendation": "Установить LIMIT и делать запросы с пагинацией(метод с курсором)"
       }
     ]
-  }
+  },
+  "statistic": [
+    {
+      "query_single_line": "SELECT                 REPLACE(query, $1, $2) AS query_single_line,                 calls,                 ROUND(total_exec_time) AS total_exec_time,                 ROUND(mean_exec_time) AS mean_exec_time,                 rows             FROM pg_stat_statements             WHERE query LIKE $3             ORDER BY total_exec_time DESC             LIMIT $4",
+      "calls": 44,
+      "total_exec_time": 21.0,
+      "mean_exec_time": 0.0,
+      "rows": 50
+    }
+  ]
 }

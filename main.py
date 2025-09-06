@@ -15,11 +15,6 @@ for file_name in file_names:
 	with open(file_path, "r", encoding="utf-8") as f:
 		data = f.read()
 		result = getRecommendations(data)
-		print(data)
-		print(result)
 
 	with open(output_path, "w", encoding="utf-8") as f:
 		json.dump(result, f, ensure_ascii=False, indent=2)
-
-# ЗАПУСК ЧЕРЕЗ py main.py
-# python.analysis.typeCheckingMode

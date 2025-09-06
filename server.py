@@ -1,6 +1,10 @@
+import os
 from flask import Flask, jsonify, request, abort
 from werkzeug.exceptions import HTTPException
 from src.getRecommendations import getRecommendations
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -11,7 +15,7 @@ def handle_http_exception(e):
     return jsonify(response), e.code
 
 
-@app.route("/test", methods=["POST"])
+@app.route("/", methods=["POST"])
 def test():
     data: dict = request.get_json()
     if not data or "query" not in data:
@@ -35,6 +39,6 @@ def test():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3000, debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 3000)), debug=True)
 
 # ЗАПУСК ЧЕРЕЗ py main.py

@@ -2,6 +2,7 @@ from typing import List, Set
 from pglast import parse_sql
 
 # from pglast.stream import IndentedStream
+from src.common.logger import logger
 from src.pre.types import MutableProps
 from src.pre.common import Common
 from src.pre.recurse_check import RecurseCheckers
@@ -22,7 +23,7 @@ class PreAnalyze(Common):
         try:
             ast_tree: List[RawStmt] = parse_sql(query)
             stmt: SelectStmt = ast_tree[0].stmt
-            print("STMT", stmt)
+            logger.info({"AST_STMT": stmt})
             # sql_back = IndentedStream()(stmt).replace("\n", " ")
             # return sql_back
 
@@ -35,7 +36,7 @@ class PreAnalyze(Common):
             self.recurse(stmt, callback)
             return self.recs
         except Exception as e:
-            print(f"ОШИБКА: {e}")
+            logger.error({"PRE_ANALYZE_ERROR": e})
             return ["ОШИБКА: Перепроверьте запрос"]
 
     def _checkRecommendations(self, stmt: SelectStmt, outer_names: Set[str] = set()):
@@ -50,10 +51,7 @@ class PreAnalyze(Common):
         self.recurseCheckers.crossJoinCheck(stmt)
         self.recurseCheckers.subquery_in_IN(stmt)
 
-        print("FROMS", mutable_props["froms"])
         if mutable_props["froms"] > 1:
-            print(mutable_props["table"])
             self.recs.append(recommendations.cross_join_multiple_tables)
-        # print(inner_name, outer_names)
 
         return inner_names | outer_names
