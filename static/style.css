@@ -13,14 +13,6 @@ body {
   gap: 10px;
 }
 
-#modal-wrapper {
-  display: none;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.65);
-}
-
 #modal {
   position: absolute;
   left: 50%;
@@ -30,4 +22,12 @@ body {
   height: 500px;
   background-color: white;
 	padding: 25px;
+}
+
+#modal-wrapper {
+  display: none;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.65);
 }
