@@ -28,6 +28,7 @@ class PostAnalyze:
             plan_rows = plan.get("Plan Rows", 0)
             total_cost = plan.get("Total Cost")
 
+            # TODO: ПЕРЕСМОТРЕТЬ АНАЛИЗ ВРЕМЕНИ (СЕЙЧАС БАГ)
             time = plan.get(
                 "Actual Total Time",
                 f"{ANALYZE_TIMEOUT}" if MAKE_ANALYZE else None,

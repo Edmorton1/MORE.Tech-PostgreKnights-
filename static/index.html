@@ -7,12 +7,19 @@
     <title>Document</title>
   </head>
   <body>
-		<div>Сделать как модалку и хранить историю</div>
+		<div>Сделать как модалку, а div id = modal как контейнер и хранить историю</div>
+
+		<button id="open-modal">Открыть модалку</button>
+
     <form id="form-input">
       <label for="form-input-textarea">Введите SQL</label>
-      <textarea id="form-input-textarea" name="query"></textarea>
+      <textarea id="form-input-textarea" name="query">SELECT * FROM users</textarea>
       <button id="form-input-button" type="submit">Отправить</button>
     </form>
+
+		<section id="modal-wrapper">
+			<div id="modal">Модалка</div>
+		</section>
 
     <!-- <input type="file" />
     <button>Готово</button> -->
