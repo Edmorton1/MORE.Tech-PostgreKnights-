@@ -1,7 +1,8 @@
 "use strict";
 
-import { addQuery, getAllQueries } from "./indexdb.js";
-import { openModal } from "./modal.js";
+import { addQuery } from "./indexdb.js";
+import { modalQuery } from "./modal.js";
+import { setModalContent } from "./record-query.js";
 
 const form = document.getElementById("form-input");
 
@@ -26,28 +27,9 @@ form.addEventListener("submit", async (event) => {
   console.log(response);
 
   addQuery(query, response);
-  getAllQueries();
 
-  openModal();
+  const { open, modal } = modalQuery;
+  open();
 
-  const showIssues = (asd) =>
-    asd.map(
-      (issue) =>
-        `<div>
-        <div>Тяжесть: ${issue.severity}</div>
-        <div>Проблема: ${issue.problem}</div>
-        <div>Рекомендация ${issue.recommendation}</div>
-      </div>`
-    );
-
-  modal.innerHTML = `<div>
-      <div>Анализ запроса ${response.post_analyze.query}</div>
-      <div>Время: ${response.post_analyze.time}</div>
-      <div>Стоимость: ${response.post_analyze.total_cost}</div>
-      <div>Объём сканируемых данных: ${response.post_analyze.volume}</div>
-      <div>Пре-анализ запроса</div>
-			${showIssues(response.pre_analyze)}
-			<div>Пост-анализ запроса: </div>
-      ${showIssues(response.post_analyze.issues)}
-    </div>`;
+  setModalContent(modal, response);
 });

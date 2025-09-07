@@ -33,12 +33,16 @@ export const getAllQueries = async () => {
 
   console.log("GET ALL QUERY");
 
-  const tx = db.transaction("queries", "readwrite");
-  const store = tx.objectStore("queries");
-  const request = store.getAll();
-  request.onsuccess = () => {
-    const result = request.result.map((item) => item.data);
-    console.log(result);
-    return result;
-  };
+  return new Promise((res, rej) => {
+    const tx = db.transaction("queries", "readwrite");
+    const store = tx.objectStore("queries");
+    const request = store.getAll();
+
+    return (request.onsuccess = () => {
+      // const result = request.result.map((item) => item.data);
+      const result = request.result;
+      console.log(result);
+      res(result);
+    });
+  });
 };

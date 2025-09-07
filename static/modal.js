@@ -1,19 +1,39 @@
 "use strict";
 
-const modalWrapper = document.getElementById("modal-wrapper");
+export const setModalEventListener = (id, params) => {
+  const modalWrapper = document.getElementById(id);
 
-export const openModal = () => {
-  modalWrapper.style.display = "block";
+  const modal = modalWrapper.firstElementChild;
+  modal.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  const openModal = () => {
+    if (params && params.hasOwnProperty("onOpen")) {
+      params.onOpen(modal);
+    }
+    modalWrapper.style.display = "block";
+  };
+
+  const btnOpenModal = document.getElementById("open-" + id);
+  btnOpenModal.addEventListener("click", openModal);
+
+  const closeModal = () => {
+    if (params && params.hasOwnProperty("onClose")) {
+      params.onClose(modal);
+    }
+    modalWrapper.style.display = "none";
+  };
+
+  modalWrapper.addEventListener("click", closeModal);
+
+  return { open: openModal, modal };
 };
 
-modalWrapper.addEventListener("click", () => {
-  modalWrapper.style.display = "none";
-});
+export const modalQuery = setModalEventListener("modal-query");
 
-const buttonOpenModal = document.getElementById("open-modal");
-buttonOpenModal.addEventListener("click", openModal);
-
-const modal = document.getElementById("modal");
-modal.addEventListener("click", (event) => {
-  event.stopPropagation();
-});
+/**
+ * @param {ModalParams} params
+ */
+export const modalHistory = (params) =>
+  setModalEventListener("modal-history", params);

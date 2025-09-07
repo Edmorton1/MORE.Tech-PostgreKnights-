@@ -35,3 +35,9 @@
  */
 
 /** @type {AnalyzeResult} */
+
+/**
+ * @typedef {Object} ModalParams
+ * @property {(modal: HTMLElement) => void} onOpen
+ * @property {(modal: HTMLElement) => void} onClose
+ */

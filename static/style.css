@@ -13,7 +13,7 @@ body {
   gap: 10px;
 }
 
-#modal {
+.modal {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -24,7 +24,7 @@ body {
 	padding: 25px;
 }
 
-#modal-wrapper {
+.modal-wrapper {
   display: none;
   position: absolute;
   width: 100%;
