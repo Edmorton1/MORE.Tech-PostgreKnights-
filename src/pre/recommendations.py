@@ -1,7 +1,6 @@
 from src.common.request_to_db import SQLRequests
 from src.types.types import AnalysisIssue
 
-SQLReq = SQLRequests()
 
 cross_join_multiple_tables: AnalysisIssue = {
     "severity": "high",
@@ -11,10 +10,17 @@ cross_join_multiple_tables: AnalysisIssue = {
 
 
 def select_star(table: str | None) -> AnalysisIssue:
+    try:
+        SQLReq = SQLRequests()
+    except:
+        SQLReq = None
+
+    columns = f", все поля: {SQLReq.getColumns(table)}" if SQLReq and table else ""
+
     return {
         "severity": "medium",
         "problem": "Используется * в FROM",
-        "recommendation": f"Указать конкретные поля, которые нужны, все поля: {str(SQLReq.getColumns(table)) if table else ''}",
+        "recommendation": f"Указать конкретные поля, которые нужны{columns}",
     }
 
 
