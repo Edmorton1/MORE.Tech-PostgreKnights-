@@ -7,22 +7,18 @@
     <title>Document</title>
   </head>
   <body>
-    <div>
-      Сделать как модалку, а div id = modal как контейнер и хранить историю
-    </div>
-
     <section class="modal-wrapper" id="modal-query">
       <div class="modal"></div>
     </section>
-
-    <button id="open-modal-query">Открыть модалку</button>
 
     <form id="form-input">
       <label for="form-input-textarea">Введите SQL</label>
       <textarea id="form-input-textarea" name="query">
 				SELECT * FROM users</textarea
       >
-      <button id="form-input-button" type="submit">Отправить</button>
+      <button type="submit" id="form-input-button">Отправить</button>
+      <button type="button" id="open-modal-query">Открыть модалку</button>
+      <button type="button" id="open-modal-history">Открыть историю</button>
     </form>
 
     <section class="modal-wrapper" id="modal-history">
@@ -31,8 +27,6 @@
 
     <!-- <input type="file" />
     <button>Готово</button> -->
-
-    <button id="open-modal-history">Открыть историю</button>
 
     <script type="module" src="./main.js"></script>
   </body>
