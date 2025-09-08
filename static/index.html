@@ -11,14 +11,13 @@
       <div class="modal"></div>
     </section>
 
+		<header>SQL DOCTOR</header>
+
     <form id="form-input">
-      <label for="form-input-textarea">Введите SQL</label>
-      <textarea id="form-input-textarea" name="query">
-				SELECT * FROM users</textarea
-      >
-      <button type="submit" id="form-input-button">Отправить</button>
-      <button type="button" id="open-modal-query">Открыть модалку</button>
-      <button type="button" id="open-modal-history">Открыть историю</button>
+      <textarea name="query">SELECT * FROM users</textarea>
+      <button type="submit" id="form-input-button" class="btn">Отправить</button>
+      <button type="button" id="open-modal-query" class="btn">Открыть модалку</button>
+      <button type="button" id="open-modal-history" class="btn">Открыть историю</button>
     </form>
 
     <section class="modal-wrapper" id="modal-history">

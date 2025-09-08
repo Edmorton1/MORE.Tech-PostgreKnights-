@@ -1,7 +1,33 @@
-[
-  {
-    "severity": "medium",
-    "problem": "Используется * в FROM",
-    "recommendation": "Указать конкретные поля, которые нужны"
-  }
-]
+{
+  "pre_analyze": [
+    {
+      "severity": "medium",
+      "problem": "Используется * в FROM",
+      "recommendation": "Указать конкретные поля, которые нужны, все поля: ['id', 'username', 'email']"
+    }
+  ],
+  "post_analyze": {
+    "query": "SELECT * FROM users",
+    "time": 66.08,
+    "volume": {
+      "users": 1000000
+    },
+    "total_cost": 18334.0,
+    "issues": [
+      {
+        "severity": "medium",
+        "problem": "Возврат большого кол-ва значений, сейчас установлен лимит 200. Запрос вернёт 1000000 полей",
+        "recommendation": "Установить LIMIT и делать запросы с пагинацией(метод с курсором)"
+      }
+    ]
+  },
+  "statistic": [
+    {
+      "query_single_line": "SELECT                 REPLACE(query, $1, $2) AS query_single_line,                 calls,                 ROUND(total_exec_time) AS total_exec_time,                 ROUND(mean_exec_time) AS mean_exec_time,                 rows             FROM pg_stat_statements             WHERE query LIKE $3             ORDER BY total_exec_time DESC             LIMIT $4",
+      "calls": 168,
+      "total_exec_time": 85.0,
+      "mean_exec_time": 1.0,
+      "rows": 174
+    }
+  ]
+}
