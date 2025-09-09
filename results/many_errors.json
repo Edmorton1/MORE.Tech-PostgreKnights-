@@ -1,0 +1,79 @@
+{
+  "pre_analyze": [
+    {
+      "severity": "medium",
+      "problem": "Используется * в FROM",
+      "recommendation": "Указать конкретные поля, которые нужны, все поля: ['id', 'username', 'email']"
+    },
+    {
+      "severity": "medium",
+      "problem": "Использование функций в WHERE или HAVING. Из-за этого не используется индекс",
+      "recommendation": "Используйте функции в WHERE или HAVING только если без них не обойтись"
+    },
+    {
+      "severity": "low",
+      "problem": "Большое кол-во аргументов внутри IN. Сейчас ограничение 10",
+      "recommendation": "Используйте CTE"
+    },
+    {
+      "severity": "high",
+      "problem": "Использование CROSS JOIN",
+      "recommendation": "Используйте другой JOIN, а CROSS JOIN только при необходимости"
+    },
+    {
+      "severity": "low",
+      "problem": "IN с подзапросом",
+      "recommendation": "Используйте EXISTS или JOIN DISTINCT. Но лучше JOIN DISTINCT"
+    },
+    {
+      "severity": "high",
+      "problem": "Коррелированный подзапрос. Включает в себя u",
+      "recommendation": "Используйте JOIN вместо подзапросов. Это очень ускоряет запрос"
+    }
+  ],
+  "post_analyze": {
+    "query": "SELECT *\nFROM users u, posts p\nCROSS JOIN posts pp\nWHERE LOWER(u.username) = 'admin'\n  AND u.id IN (SELECT user_id FROM posts WHERE LENGTH(title) > 10)\n  AND EXISTS (\n      SELECT 1 \n      FROM posts p2\n      WHERE p2.user_id = u.id\n        AND p2.id IN (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)\n  )\nORDER BY u.id;",
+    "time": null,
+    "volume": {
+      "users": 2083,
+      "posts": 11666516
+    },
+    "total_cost": 646186498.08,
+    "issues": [
+      {
+        "severity": "high",
+        "problem": "JOIN проходится по всем рядам без индекса. Что сильно тормозит запрос",
+        "recommendation": "Поставьте индекс на одну из колонок, использующихся в JOIN"
+      },
+      {
+        "severity": "high",
+        "problem": "Полное сканирование таблицы 'users', проходится по каждому значению из 1000000, хотя нужно 2083",
+        "recommendation": "Создайте индекс по колонке из WHERE"
+      },
+      {
+        "severity": "high",
+        "problem": "Полное сканирование таблицы 'posts', проходится по каждому значению из 4999933, хотя нужно 6",
+        "recommendation": "Создайте индекс по колонке из WHERE"
+      },
+      {
+        "severity": "high",
+        "problem": "Полное сканирование таблицы 'posts', проходится по каждому значению из 4999933, хотя нужно 1666644",
+        "recommendation": "Создайте индекс по колонке из WHERE"
+      },
+      {
+        "severity": "medium",
+        "problem": "Возврат большого кол-ва значений, сейчас установлен лимит 200. Запрос вернёт 24999330004489 полей",
+        "recommendation": "Установить LIMIT и делать запросы с пагинацией(метод с курсором)"
+      }
+    ]
+  },
+  "statistic": [
+    {
+      "query_single_line": "SELECT                 REPLACE(query, $1, $2) AS query_single_line,                 calls,                 ROUND(total_exec_time) AS total_exec_time,                 ROUND(mean_exec_time) AS mean_exec_time,                 rows             FROM pg_stat_statements             WHERE query LIKE $3             ORDER BY total_exec_time DESC             LIMIT $4",
+      "calls": 183,
+      "total_exec_time": 95.0,
+      "mean_exec_time": 1.0,
+      "rows": 189
+    }
+  ]
+}

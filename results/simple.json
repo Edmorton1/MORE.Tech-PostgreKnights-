@@ -7,8 +7,8 @@
     }
   ],
   "post_analyze": {
-    "query": "SELECT * FROM users",
-    "time": 66.08,
+    "query": "SELECT * FROM users u\n",
+    "time": null,
     "volume": {
       "users": 1000000
     },
@@ -24,10 +24,10 @@
   "statistic": [
     {
       "query_single_line": "SELECT                 REPLACE(query, $1, $2) AS query_single_line,                 calls,                 ROUND(total_exec_time) AS total_exec_time,                 ROUND(mean_exec_time) AS mean_exec_time,                 rows             FROM pg_stat_statements             WHERE query LIKE $3             ORDER BY total_exec_time DESC             LIMIT $4",
-      "calls": 168,
-      "total_exec_time": 85.0,
+      "calls": 184,
+      "total_exec_time": 96.0,
       "mean_exec_time": 1.0,
-      "rows": 174
+      "rows": 190
     }
   ]
 }

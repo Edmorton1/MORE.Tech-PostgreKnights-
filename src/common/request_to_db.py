@@ -51,11 +51,9 @@ class SQLRequests:
                 future = executor.submit(self._run_explain_analyze, query, True)
                 try:
                     plan = future.result(timeout=ANALYZE_TIMEOUT)
-                    logger.info("ANALYZE ВЫПОЛНИЛСЯ")
                     return plan
                 except TimeoutError:
                     future.cancel()
-                    logger.info("ANALYZE ВЫПОЛНИЛСЯ")
                     self.conn.cancel()
                     self.conn.rollback()
                     return self._run_explain_analyze(query, False)

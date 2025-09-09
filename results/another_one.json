@@ -1,0 +1,54 @@
+{
+  "pre_analyze": [
+    {
+      "severity": "medium",
+      "problem": "Используется * в FROM",
+      "recommendation": "Указать конкретные поля, которые нужны, все поля: ['id', 'username', 'email']"
+    },
+    {
+      "severity": "low",
+      "problem": "Большое кол-во аргументов внутри IN. Сейчас ограничение 10",
+      "recommendation": "Используйте CTE"
+    },
+    {
+      "severity": "low",
+      "problem": "IN с подзапросом",
+      "recommendation": "Используйте EXISTS или JOIN DISTINCT. Но лучше JOIN DISTINCT"
+    },
+    {
+      "severity": "medium",
+      "problem": "Использование функций в WHERE или HAVING. Из-за этого не используется индекс",
+      "recommendation": "Используйте функции в WHERE или HAVING только если без них не обойтись"
+    }
+  ],
+  "post_analyze": {
+    "query": "SELECT *\nFROM users u\nWHERE u.id IN (\n    SELECT user_id \n    FROM posts p\n    WHERE LENGTH(body) > 50\n)\nAND u.username IN ('admin','user','guest','test','demo','root','manager','editor','author','reader','support','staff')\nORDER BY u.email;",
+    "time": null,
+    "volume": {
+      "users": 5,
+      "posts": 694435
+    },
+    "total_cost": 117656.37,
+    "issues": [
+      {
+        "severity": "high",
+        "problem": "Полное сканирование таблицы 'users', проходится по каждому значению из 1000000, хотя нужно 5",
+        "recommendation": "Создайте индекс по колонке из WHERE"
+      },
+      {
+        "severity": "high",
+        "problem": "Полное сканирование таблицы 'posts', проходится по каждому значению из 4999933, хотя нужно 694435",
+        "recommendation": "Создайте индекс по колонке из WHERE"
+      }
+    ]
+  },
+  "statistic": [
+    {
+      "query_single_line": "SELECT                 REPLACE(query, $1, $2) AS query_single_line,                 calls,                 ROUND(total_exec_time) AS total_exec_time,                 ROUND(mean_exec_time) AS mean_exec_time,                 rows             FROM pg_stat_statements             WHERE query LIKE $3             ORDER BY total_exec_time DESC             LIMIT $4",
+      "calls": 182,
+      "total_exec_time": 94.0,
+      "mean_exec_time": 1.0,
+      "rows": 188
+    }
+  ]
+}
